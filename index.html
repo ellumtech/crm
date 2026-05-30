@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>E-wenco CRM</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23524F4F'/%3E%3Ctext x='4' y='24' font-family='sans-serif' font-weight='800' font-size='20' fill='%2394C11F'%3Eew%3C/text%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
@@ -319,9 +320,9 @@ tbody td { padding:10px 14px; font-size:13px; color:var(--txt-mid); vertical-ali
 // CONFIGURAZIONE — Aggiorna con i tuoi valori Supabase
 // ═══════════════════════════════════════════════════════
 const CFG = {
-  URL: 'https://gubdxqtpsjjuxfhumxif.supabase.co',        // ← Supabase Project URL
-  KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1YmR4cXRwc2pqdXhmaHVteGlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNTkwODksImV4cCI6MjA5NTczNTA4OX0.9h0Y2jib7kBq7sBJD_ZT9NEbupoY6sdFb-pp2iQxz8I',                             // ← Supabase anon public key
-  FN:  'https://gubdxqtpsjjuxfhumxif.supabase.co/rest/v1/'
+  URL: 'https://gubdxqtpsjjuxfhumxif.supabase.co',
+  KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1YmR4cXRwc2pqdXhmaHVteGlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNTkwODksImV4cCI6MjA5NTczNTA4OX0.9h0Y2jib7kBq7sBJD_ZT9NEbupoY6sdFb-pp2iQxz8I',
+  FN:  'https://gubdxqtpsjjuxfhumxif.supabase.co/functions/v1'
 };
 const T = n => `crm_${n}`;
 const BUILD = '1.0.0';
