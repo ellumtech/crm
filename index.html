@@ -880,18 +880,68 @@ function openCercaOpenapi(){
     ${!hasKey?'<div class="warn-box">⚠️ Configura la chiave Openapi.it nelle Impostazioni prima di procedere.</div>':''}
     <div class="info-box">Cerca aziende italiane per codice ATECO e range di fatturato. I risultati vengono salvati automaticamente evitando duplicati per Partita IVA.</div>
     <div class="frow full"><div class="fgroup"><label>Codice ATECO *</label><input id="op-ateco" class="fi" placeholder="es. 62.01.00" style="font-family:'DM Mono',monospace;"/></div></div>
-    <div class="frow"><div class="fgroup"><label>Fatturato minimo (€)</label><input type="number" id="op-fmin" class="fi" placeholder="es. 500000"/></div><div class="fgroup"><label>Fatturato massimo (€)</label><input type="number" id="op-fmax" class="fi" placeholder="es. 5000000"/></div></div>
+    <div class="frow">
+      <div class="fgroup">
+        <label>Fatturato minimo (Mln €)</label>
+        <div style="position:relative;">
+          <input type="number" id="op-fmin" class="fi" placeholder="es. 1.5" step="0.1" min="0" style="padding-right:44px;"/>
+          <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--txt-soft);font-weight:600;pointer-events:none;">Mln</span>
+        </div>
+        <span style="font-size:11px;color:var(--txt-faint);">Lascia vuoto = nessun minimo</span>
+      </div>
+      <div class="fgroup">
+        <label>Fatturato massimo (Mln €)</label>
+        <div style="position:relative;">
+          <input type="number" id="op-fmax" class="fi" placeholder="es. 10 — vuoto = illimitato" step="0.1" min="0" style="padding-right:44px;"/>
+          <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--txt-soft);font-weight:600;pointer-events:none;">Mln</span>
+        </div>
+        <span style="font-size:11px;color:var(--txt-faint);">Lascia vuoto = nessun massimo (solo &gt; min)</span>
+      </div>
+    </div>
+    <div id="op-preview" style="font-size:12px;color:var(--ew-verde-dark);font-weight:600;margin:-6px 0 14px;padding:8px 12px;background:var(--ew-verde-ghost);border-radius:var(--rsm);display:none;"></div>
     <div class="frow"><div class="fgroup"><label>Comune (opzionale)</label><input id="op-comune" class="fi" placeholder="es. Milano"/></div><div class="fgroup"><label>Provincia (opzionale)</label><input id="op-prov" class="fi" maxlength="3" style="text-transform:uppercase;" placeholder="es. MI"/></div></div>`;
+
+  // Preview filtro fatturato in tempo reale
+  const aggiornaPrev=()=>{
+    const mn=parseFloat($('op-fmin').value.replace(',','.'));
+    const mx=parseFloat($('op-fmax').value.replace(',','.'));
+    const prev=$('op-preview');
+    if(!isNaN(mn)||!isNaN(mx)){
+      const f=v=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v*1_000_000);
+      let txt='Filtro: ';
+      if(!isNaN(mn)&&!isNaN(mx)) txt+=`fatturato tra ${f(mn)} e ${f(mx)}`;
+      else if(!isNaN(mn))         txt+=`fatturato > ${f(mn)}`;
+      else                        txt+=`fatturato < ${f(mx)}`;
+      prev.textContent=txt; prev.style.display='block';
+    } else { prev.style.display='none'; }
+  };
+  // Usa setTimeout per attendere che il DOM sia pronto
+  setTimeout(()=>{
+    $('op-fmin').addEventListener('input',aggiornaPrev);
+    $('op-fmax').addEventListener('input',aggiornaPrev);
+  },0);
+
   $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="op-avvia">🔍 Avvia ricerca</button>';
   $('op-avvia').addEventListener('click',async()=>{
     if(!S.settings['openapi_key']){ toast('Configura la chiave Openapi.it nelle Impostazioni','warn'); return; }
     const ateco=$('op-ateco').value.trim(); if(!ateco){ toast('Codice ATECO obbligatorio','warn'); return; }
-    const btn=$('op-avvia'); btn.disabled=true; btn.textContent='Ricerca in corso...';
+    // Leggi i valori in milioni e converti in euro (accetta sia virgola che punto)
+    const fminRaw=$('op-fmin').value.replace(',','.');
+    const fmaxRaw=$('op-fmax').value.replace(',','.');
+    const fminMln=parseFloat(fminRaw);
+    const fmaxMln=parseFloat(fmaxRaw);
+    const fatturato_min=!isNaN(fminMln) ? Math.round(fminMln*1_000_000) : null;
+    const fatturato_max=!isNaN(fmaxMln) ? Math.round(fmaxMln*1_000_000) : null;
+    // Validazione: se max < min
+    if(fatturato_min!==null&&fatturato_max!==null&&fatturato_max<fatturato_min){
+      toast('Il massimo non può essere inferiore al minimo','warn'); return;
+    }
+    const btn=$('op-avvia'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Ricerca in corso...';
     try{
       const data=await callFn('crm-cerca-prospect',{
         codice_ateco:ateco,
-        fatturato_min:parseFloat($('op-fmin').value)||null,
-        fatturato_max:parseFloat($('op-fmax').value)||null,
+        fatturato_min,
+        fatturato_max,
         comune:$('op-comune').value.trim()||null,
         provincia:$('op-prov').value.trim().toUpperCase()||null,
         openapi_key:S.settings['openapi_key']
@@ -902,8 +952,8 @@ function openCercaOpenapi(){
         closeModal();
         renderAziende($('pb'));
       } else toast('Errore: '+(data.error||'sconosciuto'),'err');
-    }catch(e){ toast('Errore Edge Function','err'); }
-    btn.disabled=false; btn.textContent='🔍 Avvia ricerca';
+    }catch(e){ toast('Errore Edge Function: '+e.message,'err'); }
+    btn.disabled=false; btn.innerHTML='🔍 Avvia ricerca';
   });
   openModal();
 }
