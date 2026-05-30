@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>E-wenco CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  /* Brand */
+  --ew-verde:       #94C11F;
+  --ew-grigio:      #524F4F;
+  /* Palette estesa */
+  --ew-verde-dark:  #6E9116;
+  --ew-verde-light: #D6EDAB;
+  --ew-verde-xlight:#EFF8D9;
+  --ew-verde-ghost: #F7FCF0;
+  --ew-grigio-mid:  #857F7F;
+  --ew-grigio-light:#C4BFBF;
+  --ew-grigio-xlight:#EEECEC;
+  --ew-grigio-ghost:#F6F5F5;
+  /* Sfondi */
+  --bg:       #F4F3F1;
+  --bg-card:  #FFFFFF;
+  /* Testo */
+  --txt:      #2A2828;
+  --txt-mid:  #524F4F;
+  --txt-soft: #857F7F;
+  --txt-faint:#B5B0B0;
+  /* Stato */
+  --red:        #C0392B;
+  --red-light:  #FDECEA;
+  --orange:     #D4770A;
+  --orange-light:#FEF3E2;
+  --blue:       #2563EB;
+  --blue-light: #EFF6FF;
+  --purple:     #7C3AED;
+  --purple-light:#F5F3FF;
+  /* Shadows */
+  --sh-xs: 0 1px 2px rgba(82,79,79,.06);
+  --sh-sm: 0 2px 6px rgba(82,79,79,.08);
+  --sh-md: 0 6px 18px rgba(82,79,79,.10);
+  --sh-lg: 0 16px 40px rgba(82,79,79,.14);
+  /* Radii */
+  --r: 10px; --rsm: 6px; --rlg: 16px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--txt); font-size: 14px; line-height: 1.5; }
+
+/* ── Toast ── */
+#toast { position:fixed; bottom:24px; right:24px; padding:12px 20px; border-radius:var(--r); font-size:13px; font-weight:600; z-index:9999; opacity:0; transform:translateY(8px); transition:all .25s; pointer-events:none; max-width:380px; }
+#toast.show { opacity:1; transform:translateY(0); }
+#toast.tok { background:var(--txt); color:#fff; }
+#toast.terr { background:var(--red); color:#fff; }
+#toast.twarn { background:var(--orange); color:#fff; }
+
+/* ── Login ── */
+#lp { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); }
+.lcard { background:#fff; border-radius:var(--rlg); padding:44px 40px; width:100%; max-width:420px; box-shadow:var(--sh-lg); border:1px solid var(--ew-grigio-xlight); }
+.llogo { display:flex; justify-content:center; margin-bottom:28px; }
+.llogo img { height:42px; }
+.lsub { text-align:center; font-size:13px; color:var(--txt-soft); margin-bottom:28px; }
+.lfield { margin-bottom:16px; }
+.lfield label { display:block; font-size:11px; font-weight:700; color:var(--txt-mid); letter-spacing:.6px; text-transform:uppercase; margin-bottom:6px; }
+.lfield input { width:100%; padding:11px 14px; border:1.5px solid var(--ew-grigio-xlight); border-radius:var(--rsm); font-family:'DM Sans',sans-serif; font-size:14px; color:var(--txt); outline:none; transition:border-color .2s; background:#fff; }
+.lfield input:focus { border-color:var(--ew-verde); }
+.lbtn { width:100%; padding:12px; background:var(--ew-verde); color:#fff; border:none; border-radius:var(--rsm); font-family:'DM Sans',sans-serif; font-size:14px; font-weight:700; cursor:pointer; transition:opacity .2s; }
+.lbtn:hover { opacity:.88; }
+.lerr { background:var(--red-light); color:var(--red); border-radius:var(--rsm); padding:10px 14px; font-size:13px; margin-top:14px; display:none; }
+
+/* ── App shell ── */
+#app { display:none; flex-direction:column; min-height:100vh; }
+#topbar { background:#fff; border-bottom:1px solid var(--ew-grigio-xlight); padding:0 28px; position:sticky; top:0; z-index:100; box-shadow:var(--sh-xs); }
+#tb-top { height:54px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--ew-grigio-ghost); }
+#tb-logo img { height:30px; }
+#tb-right { display:flex; align-items:center; gap:14px; font-size:12px; color:var(--txt-soft); }
+#tb-user { font-weight:700; color:var(--txt-mid); }
+#tb-role { background:var(--ew-verde-xlight); color:var(--ew-verde-dark); padding:3px 9px; border-radius:20px; font-size:10px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; }
+#lout { background:none; border:1px solid var(--ew-grigio-xlight); border-radius:var(--rsm); padding:5px 12px; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; color:var(--txt-soft); cursor:pointer; transition:all .2s; }
+#lout:hover { border-color:var(--red); color:var(--red); }
+#tb-nav { height:42px; display:flex; align-items:stretch; overflow-x:auto; gap:2px; }
+.tnb { display:flex; align-items:center; gap:6px; padding:0 14px; font-size:12px; font-weight:600; color:var(--txt-soft); cursor:pointer; border:none; background:none; font-family:'DM Sans',sans-serif; letter-spacing:.2px; border-bottom:2.5px solid transparent; transition:all .17s; text-transform:uppercase; white-space:nowrap; }
+.tnb:hover { color:var(--txt-mid); border-bottom-color:var(--ew-grigio-light); }
+.tnb.active { color:var(--ew-verde-dark); border-bottom-color:var(--ew-verde); }
+.tnb .badge { background:var(--ew-verde); color:#fff; border-radius:20px; padding:1px 7px; font-size:10px; font-weight:800; }
+
+main#main { flex:1; padding:28px 32px; }
+.page-wrap { max-width:1380px; margin:0 auto; }
+.page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+.page-title { font-size:22px; font-weight:800; color:var(--txt); }
+.page-subtitle { font-size:13px; color:var(--txt-soft); margin-top:2px; }
+
+/* ── Cards & Stats ── */
+.card { background:#fff; border:1px solid var(--ew-grigio-xlight); border-radius:var(--r); box-shadow:var(--sh-xs); padding:20px; }
+.card-title { font-size:12px; font-weight:700; color:var(--txt-mid); text-transform:uppercase; letter-spacing:.6px; margin-bottom:16px; }
+.stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; margin-bottom:24px; }
+.stat-card { background:#fff; border:1px solid var(--ew-grigio-xlight); border-radius:var(--r); padding:18px 20px; box-shadow:var(--sh-xs); transition:box-shadow .2s; }
+.stat-card:hover { box-shadow:var(--sh-sm); }
+.stat-val { font-size:28px; font-weight:800; color:var(--txt); }
+.stat-lbl { font-size:11px; color:var(--txt-soft); font-weight:600; letter-spacing:.4px; text-transform:uppercase; margin-top:2px; }
+.stat-accent { display:inline-block; width:3px; height:28px; border-radius:2px; background:var(--ew-verde); margin-right:10px; vertical-align:middle; }
+
+/* ── Buttons ── */
+.btn { padding:8px 16px; border-radius:var(--rsm); font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all .18s; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+.btn-primary { background:var(--ew-verde); color:#fff; }
+.btn-primary:hover { background:var(--ew-verde-dark); }
+.btn-primary:disabled { opacity:.45; cursor:not-allowed; }
+.btn-secondary { background:#fff; color:var(--txt-mid); border:1.5px solid var(--ew-grigio-xlight); }
+.btn-secondary:hover { border-color:var(--ew-grigio-light); background:var(--ew-grigio-ghost); }
+.btn-danger { background:var(--red-light); color:var(--red); border:1px solid #f5c0bb; }
+.btn-danger:hover { background:var(--red); color:#fff; }
+.btn-sm { padding:5px 11px; font-size:12px; }
+.btn-ghost { background:none; border:none; color:var(--txt-soft); padding:4px 8px; }
+.btn-ghost:hover { background:var(--ew-grigio-ghost); color:var(--txt); }
+
+/* ── Forms ── */
+.fg { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
+.fl { font-size:11px; font-weight:700; color:var(--txt-mid); text-transform:uppercase; letter-spacing:.5px; }
+.fi, .fse, .fta { padding:9px 12px; border:1.5px solid var(--ew-grigio-xlight); border-radius:var(--rsm); font-family:'DM Sans',sans-serif; font-size:13.5px; color:var(--txt); background:#fff; outline:none; transition:border-color .17s, box-shadow .17s; width:100%; }
+.fi:focus, .fse:focus, .fta:focus { border-color:var(--ew-verde); box-shadow:0 0 0 3px rgba(148,193,31,.12); }
+.fta { resize:vertical; min-height:80px; line-height:1.55; }
+.fse { cursor:pointer; }
+.frow { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+.frow.full { grid-template-columns:1fr; }
+.frow.three { grid-template-columns:1fr 1fr 1fr; }
+.fgroup { display:flex; flex-direction:column; gap:5px; }
+.fgroup label { font-size:11px; font-weight:700; color:var(--txt-mid); text-transform:uppercase; letter-spacing:.4px; }
+.fgroup input, .fgroup select, .fgroup textarea { width:100%; padding:9px 12px; border:1.5px solid var(--ew-grigio-xlight); border-radius:var(--rsm); font-family:'DM Sans',sans-serif; font-size:13px; color:var(--txt); background:#fff; outline:none; transition:border-color .17s; }
+.fgroup input:focus, .fgroup select:focus, .fgroup textarea:focus { border-color:var(--ew-verde); box-shadow:0 0 0 3px rgba(148,193,31,.12); }
+.fgroup textarea { resize:vertical; min-height:80px; line-height:1.55; }
+
+/* ── Toolbar ── */
+.toolbar { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+.toolbar input[type=text], .toolbar input[type=search], .toolbar select { padding:7px 12px; border:1.5px solid var(--ew-grigio-xlight); border-radius:var(--rsm); font-family:'DM Sans',sans-serif; font-size:13px; color:var(--txt); background:#fff; outline:none; transition:border-color .17s; }
+.toolbar input:focus, .toolbar select:focus { border-color:var(--ew-verde); }
+
+/* ── Table ── */
+.tbl-wrap { overflow-x:auto; border-radius:var(--r); border:1px solid var(--ew-grigio-xlight); }
+table { width:100%; border-collapse:collapse; background:#fff; }
+thead th { background:var(--ew-grigio-ghost); padding:10px 14px; text-align:left; font-size:11px; font-weight:700; color:var(--txt-mid); text-transform:uppercase; letter-spacing:.5px; border-bottom:1px solid var(--ew-grigio-xlight); white-space:nowrap; }
+tbody tr { border-bottom:1px solid var(--ew-grigio-ghost); transition:background .12s; }
+tbody tr:last-child { border-bottom:none; }
+tbody tr:hover { background:var(--ew-verde-ghost); }
+tbody td { padding:10px 14px; font-size:13px; color:var(--txt-mid); vertical-align:middle; }
+
+/* ── Badges ── */
+.badge-stato { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; }
+.s-prospect      { background:var(--ew-verde-xlight); color:var(--ew-verde-dark); }
+.s-in_trattativa { background:var(--orange-light); color:var(--orange); }
+.s-cliente       { background:#dcfce7; color:#16a34a; }
+.s-perso         { background:var(--red-light); color:var(--red); }
+.s-non_interessato { background:var(--ew-grigio-xlight); color:var(--txt-soft); }
+.badge-priorita { display:inline-flex; align-items:center; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; }
+.p-urgente { background:#fee2e2; color:#dc2626; }
+.p-alta    { background:var(--orange-light); color:var(--orange); }
+.p-normale { background:var(--ew-verde-xlight); color:var(--ew-verde-dark); }
+.p-bassa   { background:var(--ew-grigio-ghost); color:var(--txt-soft); }
+.dot { width:7px; height:7px; border-radius:50%; display:inline-block; flex-shrink:0; }
+.d-prospect { background:var(--ew-verde); }
+.d-in_trattativa { background:var(--orange); }
+.d-cliente { background:#16a34a; }
+.d-perso { background:var(--red); }
+.d-non_interessato { background:var(--ew-grigio-light); }
+
+/* ── Modal ── */
+#modal-overlay { position:fixed; inset:0; background:rgba(82,79,79,.5); z-index:500; display:none; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(2px); }
+#modal-overlay.open { display:flex; }
+.modal { background:#fff; border-radius:var(--rlg); box-shadow:var(--sh-lg); width:100%; max-width:660px; max-height:92vh; display:flex; flex-direction:column; }
+.modal-lg { max-width:880px; }
+.modal-xl { max-width:1060px; }
+.modal-head { padding:20px 24px 16px; border-bottom:1px solid var(--ew-grigio-xlight); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.modal-head h3 { font-size:16px; font-weight:800; color:var(--txt); }
+.modal-close { background:none; border:none; font-size:20px; color:var(--txt-soft); cursor:pointer; padding:2px 6px; border-radius:4px; line-height:1; }
+.modal-close:hover { background:var(--ew-grigio-ghost); }
+.modal-body { padding:24px; overflow-y:auto; flex:1; }
+.modal-foot { padding:16px 24px; border-top:1px solid var(--ew-grigio-xlight); display:flex; justify-content:flex-end; gap:10px; flex-shrink:0; }
+
+/* ── Tabs ── */
+.tabs { display:flex; border-bottom:2px solid var(--ew-grigio-xlight); margin-bottom:20px; }
+.tab { padding:10px 18px; font-size:13px; font-weight:600; color:var(--txt-soft); cursor:pointer; border-bottom:2.5px solid transparent; margin-bottom:-2px; transition:all .18s; white-space:nowrap; }
+.tab:hover { color:var(--txt-mid); }
+.tab.active { color:var(--ew-verde-dark); border-bottom-color:var(--ew-verde); }
+
+/* ── Azienda scheda ── */
+.az-header { display:flex; align-items:flex-start; gap:16px; padding:20px 24px; border-bottom:1px solid var(--ew-grigio-xlight); }
+.az-avatar { width:52px; height:52px; border-radius:var(--r); background:var(--ew-verde-xlight); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; color:var(--ew-verde-dark); flex-shrink:0; }
+.az-title { font-size:20px; font-weight:800; color:var(--txt); line-height:1.2; }
+.az-sub { font-size:13px; color:var(--txt-soft); margin-top:4px; }
+.az-meta { display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+.az-chip { background:var(--ew-grigio-ghost); border:1px solid var(--ew-grigio-xlight); border-radius:20px; padding:3px 12px; font-size:12px; font-weight:600; color:var(--txt-mid); display:inline-flex; align-items:center; gap:5px; }
+
+/* ── Timeline / Operazioni ── */
+.tl-item { display:flex; gap:14px; padding:12px 0; border-bottom:1px solid var(--ew-grigio-ghost); }
+.tl-item:last-child { border-bottom:none; }
+.tl-dot { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; margin-top:2px; }
+.tl-dot.email    { background:var(--blue-light); }
+.tl-dot.tel      { background:var(--ew-verde-xlight); }
+.tl-dot.incontro { background:var(--purple-light); }
+.tl-dot.nota     { background:var(--ew-grigio-ghost); }
+.tl-dot.preventivo { background:var(--orange-light); }
+.tl-tipo { font-size:13px; font-weight:700; color:var(--txt); }
+.tl-det  { font-size:13px; color:var(--txt-mid); margin-top:3px; white-space:pre-wrap; }
+.tl-meta { font-size:11px; color:var(--txt-faint); margin-top:4px; }
+
+/* ── Prossime Azioni ── */
+.azione-card { background:#fff; border:1px solid var(--ew-grigio-xlight); border-radius:var(--r); padding:14px 18px; display:flex; align-items:flex-start; gap:14px; box-shadow:var(--sh-xs); transition:box-shadow .18s; margin-bottom:10px; }
+.azione-card:hover { box-shadow:var(--sh-sm); }
+.azione-card.scaduta { border-left:3px solid var(--red); }
+.azione-card.urgente { border-left:3px solid var(--orange); }
+.azione-card.ok      { border-left:3px solid var(--ew-verde); }
+.ac-tipo { font-size:13px; font-weight:700; color:var(--txt); }
+.ac-azienda { font-size:12px; color:var(--ew-verde-dark); font-weight:600; margin-top:2px; }
+.ac-data { font-size:12px; color:var(--txt-soft); margin-top:3px; }
+.ac-note { font-size:12px; color:var(--txt-mid); margin-top:5px; font-style:italic; }
+
+/* ── Contatti ── */
+.contatto-row { display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--ew-grigio-ghost); }
+.contatto-row:last-child { border-bottom:none; }
+.ct-avatar { width:36px; height:36px; border-radius:50%; background:var(--ew-verde-xlight); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--ew-verde-dark); flex-shrink:0; }
+.ct-nome { font-size:13px; font-weight:700; color:var(--txt); }
+.ct-ruolo { font-size:12px; color:var(--txt-soft); }
+.ct-email { font-size:12px; color:var(--blue); }
+
+/* ── Settings ── */
+.setting-row { display:flex; align-items:flex-start; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--ew-grigio-ghost); gap:20px; }
+.setting-row:last-child { border-bottom:none; }
+.setting-lbl { font-size:13px; font-weight:700; color:var(--txt); }
+.setting-desc { font-size:12px; color:var(--txt-soft); margin-top:2px; }
+.key-input { font-family:'DM Mono',monospace; font-size:12px; width:240px; background:var(--ew-grigio-ghost); padding:7px 10px; border:1.5px solid var(--ew-grigio-xlight); border-radius:var(--rsm); }
+.key-input.saved { border-color:var(--ew-verde); background:var(--ew-verde-ghost); }
+
+/* ── Info / Warn boxes ── */
+.info-box { background:var(--ew-verde-ghost); border:1px solid var(--ew-verde-light); border-radius:var(--r); padding:12px 16px; font-size:13px; color:var(--ew-verde-dark); margin-bottom:16px; }
+.warn-box { background:var(--orange-light); border:1px solid #f5c28a; border-radius:var(--r); padding:12px 16px; font-size:13px; color:#7a3800; margin-bottom:16px; }
+.empty { text-align:center; padding:52px 20px; color:var(--txt-soft); }
+.empty .ei { font-size:40px; margin-bottom:12px; }
+.empty p { font-size:14px; font-weight:600; }
+.empty small { font-size:12px; color:var(--txt-faint); display:block; margin-top:6px; }
+.spinner { display:inline-block; width:14px; height:14px; border:2px solid var(--ew-grigio-xlight); border-top-color:var(--ew-verde); border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── Utenti ── */
+.user-row { display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--ew-grigio-ghost); }
+.user-row:last-child { border-bottom:none; }
+.user-av { width:36px; height:36px; border-radius:50%; background:var(--ew-verde-xlight); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; color:var(--ew-verde-dark); flex-shrink:0; }
+
+@media(max-width:768px) {
+  main#main { padding:16px; }
+  .frow { grid-template-columns:1fr; }
+  .stats-row { grid-template-columns:repeat(2,1fr); }
+}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- ══════════════════ LOGIN ══════════════════ -->
+<div id="lp">
+  <div class="lcard">
+    <div class="llogo">
+      <svg height="36" viewBox="0 0 260 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <text x="0" y="46" font-family="DM Sans,sans-serif" font-weight="800" font-size="48" fill="#524F4F">e</text>
+        <text x="36" y="46" font-family="DM Sans,sans-serif" font-weight="800" font-size="48" fill="#94C11F">-wenco</text>
+        <text x="0" y="58" font-family="DM Sans,sans-serif" font-weight="400" font-size="11" letter-spacing="3" fill="#857F7F">CRM</text>
+      </svg>
+    </div>
+    <div class="lsub">Accesso riservato al personale autorizzato</div>
+    <div id="lerr" class="lerr"></div>
+    <div class="lfield"><label>E-Mail</label><input type="email" id="lemail" placeholder="nome@e-wenco.it" autocomplete="username"/></div>
+    <div class="lfield"><label>Password</label><input type="password" id="lpwd" placeholder="••••••••" autocomplete="current-password"/></div>
+    <button class="lbtn" id="lbtn-login">Accedi</button>
+  </div>
+</div>
+
+<!-- ══════════════════ APP ══════════════════ -->
+<div id="app">
+  <div id="topbar">
+    <div id="tb-top">
+      <div id="tb-logo">
+        <svg height="26" viewBox="0 0 260 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="46" font-family="DM Sans,sans-serif" font-weight="800" font-size="48" fill="#524F4F">e</text>
+          <text x="36" y="46" font-family="DM Sans,sans-serif" font-weight="800" font-size="48" fill="#94C11F">-wenco</text>
+          <text x="168" y="46" font-family="DM Sans,sans-serif" font-weight="400" font-size="20" letter-spacing="3" fill="#857F7F">CRM</text>
+        </svg>
+      </div>
+      <div id="tb-right">
+        <span id="tb-date"></span>
+        <span id="tb-user"></span>
+        <span id="tb-role"></span>
+        <button id="lout">Esci</button>
+      </div>
+    </div>
+    <nav id="tb-nav">
+      <button class="tnb active" data-page="aziende">Aziende</button>
+      <button class="tnb" data-page="azioni">Prossime Azioni <span class="badge" id="badge-azioni" style="display:none"></span></button>
+      <button class="tnb" data-page="settings">Impostazioni</button>
+      <button class="tnb" data-page="utenti" id="tnb-utenti" style="display:none">Utenti</button>
+    </nav>
+  </div>
+  <main id="main"><div id="pb"></div></main>
+</div>
+
+<!-- ══════════════════ MODAL ══════════════════ -->
+<div id="modal-overlay">
+  <div class="modal" id="modal-box">
+    <div class="modal-head">
+      <h3 id="modal-title"></h3>
+      <button class="modal-close" id="modal-close-btn">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIGURAZIONE — Aggiorna con i tuoi valori Supabase
+// ═══════════════════════════════════════════════════════
+const CFG = {
+  URL: 'https://TUO-PROGETTO.supabase.co',        // ← Supabase Project URL
+  KEY: 'TUA_ANON_KEY',                             // ← Supabase anon public key
+  FN:  'https://TUO-PROGETTO.supabase.co/functions/v1'
+};
+const T = n => `crm_${n}`;
+const BUILD = '1.0.0';
+
+// ═══════════════════════════════════════════════════════
+// STATO GLOBALE
+// ═══════════════════════════════════════════════════════
+const S = {
+  user: null, token: null, ruolo: null, page: 'aziende',
+  aziende: [], contatti: [], operazioni: [], azioni: [], profili: [],
+  settings: {},
+  filtri: { stato:'', search:'', ateco:'' },
+  ordine: { campo:'ragione_sociale', dir:'asc' },
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function fmt(d){ if(!d) return '—'; const dt=typeof d==='string'?new Date(d.length===10?d+'T00:00:00':d):d; return dt.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+function fmtDT(d){ if(!d) return '—'; return new Date(d).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function fmtEuro(v){ if(v===null||v===undefined) return '—'; return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v); }
+
+let _tid;
+function toast(msg, type='ok'){ const el=$('toast'); clearTimeout(_tid); el.textContent=msg; el.className=`show t${type}`; _tid=setTimeout(()=>el.className='', 3500); }
+
+// ═══════════════════════════════════════════════════════
+// API HELPER
+// ═══════════════════════════════════════════════════════
+async function db(method, table, opts={}){
+  const { flt='', body=null, sel='*', ord='', lim='' } = opts;
+  let url = `${CFG.URL}/rest/v1/${table}?select=${sel}`;
+  if(flt) url += `&${flt}`;
+  if(ord) url += `&order=${ord}`;
+  if(lim) url += `&limit=${lim}`;
+  const headers = {
+    'apikey': CFG.KEY,
+    'Authorization': `Bearer ${S.token||CFG.KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': method==='POST'?'return=representation':''
+  };
+  const res = await fetch(url, { method, headers, body: body?JSON.stringify(body):undefined });
+  if(!res.ok){ const e=await res.text(); throw new Error(`${method} ${table}: ${e}`); }
+  if(res.status===204) return true;
+  return res.json();
+}
+
+async function supaAuth(email, pwd){
+  const res = await fetch(`${CFG.URL}/auth/v1/token?grant_type=password`, {
+    method:'POST',
+    headers: { 'apikey':CFG.KEY, 'Content-Type':'application/json' },
+    body: JSON.stringify({ email, password:pwd })
+  });
+  return res.json();
+}
+
+async function callFn(name, payload){
+  const res = await fetch(`${CFG.FN}/${name}`, {
+    method:'POST',
+    headers: { 'Authorization':`Bearer ${S.token}`, 'Content-Type':'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+$('lbtn-login').addEventListener('click', doLogin);
+$('lpwd').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+async function doLogin(){
+  const email=$('lemail').value.trim(), pwd=$('lpwd').value;
+  const err=$('lerr');
+  if(!email||!pwd){ err.textContent='Inserisci email e password.'; err.style.display='block'; return; }
+  const btn=$('lbtn-login'); btn.textContent='Accesso...'; btn.disabled=true;
+  try {
+    const data = await supaAuth(email, pwd);
+    if(data.error){ err.textContent=data.error_description||data.error; err.style.display='block'; return; }
+    S.token=data.access_token; S.user={email:data.user.email, id:data.user.id};
+    try {
+      const p = await db('GET',T('profili'),{flt:`id=eq.${data.user.id}`});
+      if(p&&p.length){ S.ruolo=p[0].ruolo; S.user.nome=p[0].nome; S.user.cognome=p[0].cognome; }
+      else { S.ruolo='viewer'; S.user.nome=email.split('@')[0]; S.user.cognome=''; }
+    } catch(e){ S.ruolo='viewer'; }
+    await initApp();
+  } catch(e){ err.textContent='Errore di connessione.'; err.style.display='block'; }
+  finally { btn.textContent='Accedi'; btn.disabled=false; }
+}
+
+function doLogout(){
+  S.user=null; S.token=null; S.ruolo=null;
+  $('app').style.display='none'; $('lp').style.display='flex';
+  $('lemail').value=''; $('lpwd').value='';
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+async function initApp(){
+  $('lp').style.display='none'; $('app').style.display='flex';
+  $('tb-date').textContent = new Date().toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'long'});
+  $('tb-user').textContent = `${S.user.nome||''} ${S.user.cognome||''}`.trim()||S.user.email;
+  $('tb-role').textContent = S.ruolo||'viewer';
+  document.querySelectorAll('.tnb').forEach(b => b.addEventListener('click',()=>goPage(b.dataset.page)));
+  if(S.ruolo==='admin') { const tu=$('tnb-utenti'); if(tu) tu.style.display=''; }
+  $('lout').addEventListener('click', doLogout);
+  await loadAll();
+  goPage('aziende');
+  updateBadges();
+}
+
+async function loadAll(){
+  try {
+    const [az, ct, op, ax, sv] = await Promise.all([
+      db('GET',T('aziende'),{ord:'ragione_sociale.asc'}).catch(()=>[]),
+      db('GET',T('contatti'),{ord:'cognome.asc'}).catch(()=>[]),
+      db('GET',T('operazioni'),{ord:'data_operazione.desc'}).catch(()=>[]),
+      db('GET',T('prossime_azioni'),{ord:'data_scadenza.asc'}).catch(()=>[]),
+      db('GET',T('settings'),{}).catch(()=>[]),
+    ]);
+    S.aziende=az||[]; S.contatti=ct||[]; S.operazioni=op||[]; S.azioni=ax||[];
+    S.settings={}; (sv||[]).forEach(r=>{ S.settings[r.chiave]=r.valore; });
+    try { S.profili=await db('GET',T('profili'),{ord:'cognome.asc'})||[]; } catch(e){ S.profili=[]; }
+  } catch(e){ toast('Errore caricamento dati','err'); }
+}
+
+function updateBadges(){
+  const oggi = new Date().toISOString().slice(0,10);
+  const pending = S.azioni.filter(a => a.stato==='in_attesa' && a.data_scadenza<=oggi);
+  const ba=$('badge-azioni');
+  if(pending.length>0){ ba.textContent=pending.length; ba.style.display='inline'; }
+  else ba.style.display='none';
+}
+
+function goPage(pg){
+  S.page=pg;
+  document.querySelectorAll('.tnb').forEach(b=>b.classList.toggle('active',b.dataset.page===pg));
+  const pb=$('pb');
+  if(pg==='aziende') renderAziende(pb);
+  else if(pg==='azioni') renderAzioni(pb);
+  else if(pg==='settings') renderSettings(pb);
+  else if(pg==='utenti') renderUtenti(pb);
+}
+
+// ═══════════════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════════════
+function openModal(){ $('modal-overlay').classList.add('open'); }
+function closeModal(){ $('modal-overlay').classList.remove('open'); $('modal-box').className='modal'; }
+$('modal-close-btn').addEventListener('click', closeModal);
+$('modal-overlay').addEventListener('click', e=>{ if(e.target===$('modal-overlay')) closeModal(); });
+
+// ═══════════════════════════════════════════════════════
+// ── AZIENDE ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+function aziendeFiltered(){
+  let list = S.aziende.filter(a=>{
+    if(S.filtri.stato && a.stato_commerciale!==S.filtri.stato) return false;
+    if(S.filtri.ateco && !(a.codice_ateco||'').startsWith(S.filtri.ateco)) return false;
+    if(S.filtri.search){
+      const q=S.filtri.search.toLowerCase();
+      return (a.ragione_sociale||'').toLowerCase().includes(q)||
+             (a.comune||'').toLowerCase().includes(q)||
+             (a.partita_iva||'').includes(q);
+    }
+    return true;
+  });
+  const {campo,dir}=S.ordine;
+  list.sort((a,b)=>{
+    let va=a[campo]||'', vb=b[campo]||'';
+    if(typeof va==='string') va=va.toLowerCase(), vb=vb.toLowerCase();
+    if(va<vb) return dir==='asc'?-1:1;
+    if(va>vb) return dir==='asc'?1:-1;
+    return 0;
+  });
+  return list;
+}
+
+function statoBadge(stato){
+  const L={prospect:'Prospect',in_trattativa:'In trattativa',cliente:'Cliente',perso:'Perso',non_interessato:'Non interessato'};
+  return `<span class="badge-stato s-${stato}"><span class="dot d-${stato}"></span>${L[stato]||stato}</span>`;
+}
+
+function renderAziende(pb){
+  const list=aziendeFiltered();
+  const cnt={prospect:0,in_trattativa:0,cliente:0,perso:0,non_interessato:0};
+  S.aziende.forEach(a=>{ if(cnt[a.stato_commerciale]!==undefined) cnt[a.stato_commerciale]++; });
+
+  pb.innerHTML=`<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Aziende</div>
+      <div class="page-subtitle">Gestione prospect e clienti commerciali</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      ${S.ruolo==='admin'?'<button class="btn btn-secondary" id="btn-add-manuale">+ Aggiungi manuale</button><button class="btn btn-primary" id="btn-cerca-openapi">&#128269; Cerca su Openapi.it</button>':''}
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div style="display:flex;align-items:center;"><span class="stat-accent"></span><div><div class="stat-val">${S.aziende.length}</div><div class="stat-lbl">Totali</div></div></div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--ew-verde-dark)">${cnt.prospect}</div><div class="stat-lbl">Prospect</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--orange)">${cnt.in_trattativa}</div><div class="stat-lbl">In Trattativa</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#16a34a">${cnt.cliente}</div><div class="stat-lbl">Clienti</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--red)">${cnt.perso}</div><div class="stat-lbl">Persi</div></div>
+  </div>
+  <div class="toolbar">
+    <input type="search" id="f-search" placeholder="Cerca ragione sociale, città, P.IVA..." value="${esc(S.filtri.search)}" style="width:260px;"/>
+    <select id="f-stato" style="min-width:150px;">
+      <option value="">Tutti gli stati</option>
+      <option value="prospect" ${S.filtri.stato==='prospect'?'selected':''}>Prospect</option>
+      <option value="in_trattativa" ${S.filtri.stato==='in_trattativa'?'selected':''}>In trattativa</option>
+      <option value="cliente" ${S.filtri.stato==='cliente'?'selected':''}>Cliente</option>
+      <option value="perso" ${S.filtri.stato==='perso'?'selected':''}>Perso</option>
+      <option value="non_interessato" ${S.filtri.stato==='non_interessato'?'selected':''}>Non interessato</option>
+    </select>
+    <input type="text" id="f-ateco" placeholder="Codice ATECO..." value="${esc(S.filtri.ateco)}" style="width:140px;"/>
+    <button class="btn btn-secondary btn-sm" id="btn-reset">&#8635; Reset</button>
+    <div style="margin-left:auto;font-size:12px;color:var(--txt-soft);">${list.length} aziende</div>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>Ragione Sociale</th><th>ATECO</th><th>Comune</th><th>Fatturato</th><th>Stato</th><th>Contatti</th><th>Ultima op.</th><th>Azioni</th>
+    </tr></thead>
+    <tbody id="tbody-az">
+    ${list.length===0?'<tr><td colspan="8"><div class="empty"><div class="ei">&#127970;</div><p>Nessuna azienda</p><small>Aggiungi manualmente o cerca su Openapi.it</small></div></td></tr>':
+    list.map(a=>{
+      const nct=S.contatti.filter(c=>c.azienda_id===a.id).length;
+      const lastOp=S.operazioni.filter(o=>o.azienda_id===a.id)[0];
+      const aziProm=S.azioni.filter(x=>x.azienda_id===a.id&&x.stato==='in_attesa').length;
+      return `<tr style="cursor:pointer;" onclick="openScheda('${a.id}')">
+        <td>
+          <div style="font-weight:700;color:var(--txt);">${esc(a.ragione_sociale)}</div>
+          ${a.sito_web?`<div style="font-size:11px;margin-top:2px;"><a href="${esc(a.sito_web)}" target="_blank" style="color:var(--ew-verde-dark);text-decoration:none;" onclick="event.stopPropagation()">${esc(a.sito_web.replace(/https?:\/\//,''))}</a></div>`:''}
+          ${a.partita_iva?`<div style="font-size:11px;color:var(--txt-faint);font-family:'DM Mono',monospace;">P.IVA ${esc(a.partita_iva)}</div>`:''}
+        </td>
+        <td><span style="font-family:'DM Mono',monospace;font-size:12px;">${esc(a.codice_ateco||'—')}</span></td>
+        <td style="font-size:13px;">${esc(a.comune||'—')}${a.provincia?` (${esc(a.provincia)})`:''}</td>
+        <td style="font-size:13px;font-weight:600;">${a.fatturato_valore?fmtEuro(a.fatturato_valore):'—'}</td>
+        <td>${statoBadge(a.stato_commerciale)}</td>
+        <td style="font-size:13px;text-align:center;">${nct||'—'}${aziProm>0?` <span class="badge" style="background:var(--orange);color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;">${aziProm}</span>`:''}</td>
+        <td style="font-size:12px;color:var(--txt-soft);">${lastOp?fmt(lastOp.data_operazione):'—'}</td>
+        <td onclick="event.stopPropagation()">
+          <div style="display:flex;gap:5px;">
+            ${S.ruolo==='admin'?`<button class="btn btn-secondary btn-sm" onclick="openScheda('${a.id}')">Apri</button>`:''}
+          </div>
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table></div></div>`;
+
+  $('f-search').addEventListener('input',e=>{S.filtri.search=e.target.value;renderAziende($('pb'));});
+  $('f-stato').addEventListener('change',e=>{S.filtri.stato=e.target.value;renderAziende($('pb'));});
+  $('f-ateco').addEventListener('input',e=>{S.filtri.ateco=e.target.value;renderAziende($('pb'));});
+  $('btn-reset').addEventListener('click',()=>{S.filtri={stato:'',search:'',ateco:''};renderAziende($('pb'));});
+  if($('btn-add-manuale')) $('btn-add-manuale').addEventListener('click',openAddAzienda);
+  if($('btn-cerca-openapi')) $('btn-cerca-openapi').addEventListener('click',openCercaOpenapi);
+}
+
+// ═══════════════════════════════════════════════════════
+// ── SCHEDA AZIENDA ────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+function openScheda(azId){
+  const az=S.aziende.find(x=>x.id===azId); if(!az) return;
+  const contatti=S.contatti.filter(c=>c.azienda_id===azId);
+  const operazioni=S.operazioni.filter(o=>o.azienda_id===azId);
+  const azioni=S.azioni.filter(a=>a.azienda_id===azId&&a.stato==='in_attesa');
+  const initials=(az.ragione_sociale||'?').replace(/[^A-Za-z]/g,' ').trim().split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+
+  $('modal-title').textContent='Scheda Azienda';
+  $('modal-box').className='modal modal-xl';
+  $('modal-body').innerHTML=`
+    <div class="az-header">
+      <div class="az-avatar">${esc(initials)}</div>
+      <div style="flex:1;">
+        <div class="az-title">${esc(az.ragione_sociale)}</div>
+        <div class="az-sub">${az.codice_ateco?`ATECO ${esc(az.codice_ateco)}${az.descrizione_ateco?' — '+esc(az.descrizione_ateco):''}`:''}</div>
+        <div class="az-meta">
+          ${statoBadge(az.stato_commerciale)}
+          ${az.comune?`<span class="az-chip">📍 ${esc(az.comune)}${az.provincia?' ('+esc(az.provincia)+')':''}</span>`:''}
+          ${az.fatturato_valore?`<span class="az-chip">💰 ${fmtEuro(az.fatturato_valore)}${az.anno_bilancio?' ('+az.anno_bilancio+')':''}</span>`:''}
+          ${az.partita_iva?`<span class="az-chip" style="font-family:'DM Mono',monospace;">P.IVA ${esc(az.partita_iva)}</span>`:''}
+          ${az.telefono?`<span class="az-chip">📞 ${esc(az.telefono)}</span>`:''}
+          ${az.sito_web?`<span class="az-chip"><a href="${esc(az.sito_web)}" target="_blank" style="color:inherit;text-decoration:none;">🌐 ${esc(az.sito_web.replace(/https?:\/\//,''))}</a></span>`:''}
+          ${az.pec?`<span class="az-chip">📧 ${esc(az.pec)}</span>`:''}
+        </div>
+      </div>
+      ${S.ruolo==='admin'?`<div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-secondary btn-sm" id="btn-edit-az">✏️ Modifica</button>
+        <button class="btn btn-danger btn-sm" id="btn-del-az">🗑 Elimina</button>
+        <select id="sel-stato-az" class="fi" style="font-size:12px;padding:6px 10px;">
+          <option value="prospect" ${az.stato_commerciale==='prospect'?'selected':''}>Prospect</option>
+          <option value="in_trattativa" ${az.stato_commerciale==='in_trattativa'?'selected':''}>In trattativa</option>
+          <option value="cliente" ${az.stato_commerciale==='cliente'?'selected':''}>Cliente</option>
+          <option value="perso" ${az.stato_commerciale==='perso'?'selected':''}>Perso</option>
+          <option value="non_interessato" ${az.stato_commerciale==='non_interessato'?'selected':''}>Non interessato</option>
+        </select>
+      </div>`:''}
+    </div>
+
+    <div class="tabs" style="margin-top:0;padding:0 24px;">
+      <div class="tab active" data-tab="timeline">Timeline (${operazioni.length})</div>
+      <div class="tab" data-tab="contatti">Contatti (${contatti.length})</div>
+      <div class="tab" data-tab="azioni">Prossime Azioni (${azioni.length})</div>
+      <div class="tab" data-tab="dettagli">Dettagli</div>
+    </div>
+
+    <div id="tab-content" style="padding:0 24px 16px;"></div>`;
+
+  $('modal-foot').innerHTML=`${S.ruolo==='admin'?`
+    <button class="btn btn-secondary" id="btn-nuova-op">+ Operazione</button>
+    <button class="btn btn-secondary" id="btn-nuovo-ct">+ Contatto</button>
+    <button class="btn btn-primary" id="btn-nuova-az-azione">+ Prossima Azione</button>`:''}
+    <button class="btn btn-ghost" onclick="closeModal()">Chiudi</button>`;
+
+  // Tab switching
+  const showTab = tabId => {
+    document.querySelectorAll('#modal-box .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tabId));
+    const tc=$('tab-content');
+    if(tabId==='timeline'){
+      tc.innerHTML=`
+        ${operazioni.length===0?'<div class="empty"><div class="ei">📋</div><p>Nessuna operazione registrata</p></div>':
+        operazioni.map(op=>{
+          const dotClass={
+            'Email inviata':'email','Email ricevuta':'email',
+            'Telefonata':'tel','Incontro':'incontro',
+            'Preventivo inviato':'preventivo'
+          }[op.tipo_operazione]||'nota';
+          const emoji={'Email inviata':'📤','Email ricevuta':'📥','Telefonata':'📞','Incontro':'🤝','Nota commerciale':'📝','Preventivo inviato':'📋','Offerta accettata':'✅'}[op.tipo_operazione]||'💬';
+          const ct=S.contatti.find(c=>c.id===op.contatto_id);
+          const op2=S.profili.find(p=>p.id===op.operatore_id);
+          return `<div class="tl-item">
+            <div class="tl-dot ${dotClass}">${emoji}</div>
+            <div style="flex:1;">
+              <div class="tl-tipo">${esc(op.tipo_operazione)}${ct?` — <span style="color:var(--ew-verde-dark)">${esc(ct.nome)} ${esc(ct.cognome||'')}</span>`:''}</div>
+              ${op.dettagli?`<div class="tl-det">${esc(op.dettagli)}</div>`:''}
+              <div class="tl-meta">${fmtDT(op.data_operazione)}${op2?` · ${esc(op2.nome)} ${esc(op2.cognome||'')}`:''}</div>
+            </div>
+            ${S.ruolo==='admin'?`<button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="delOperazione('${op.id}','${azId}')">✕</button>`:''}
+          </div>`;
+        }).join('')}`;
+    } else if(tabId==='contatti'){
+      tc.innerHTML=`
+        ${contatti.length===0?'<div class="empty"><div class="ei">👤</div><p>Nessun contatto</p></div>':
+        contatti.map(ct=>`<div class="contatto-row">
+          <div class="ct-avatar">${(ct.nome[0]||'?').toUpperCase()}${ct.cognome?(ct.cognome[0]||'').toUpperCase():''}</div>
+          <div style="flex:1;">
+            <div class="ct-nome">${esc(ct.nome)} ${esc(ct.cognome||'')}</div>
+            ${ct.ruolo_aziendale?`<div class="ct-ruolo">${esc(ct.ruolo_aziendale)}</div>`:''}
+            ${ct.email?`<div class="ct-email"><a href="mailto:${esc(ct.email)}" style="color:var(--blue);text-decoration:none;">${esc(ct.email)}</a></div>`:''}
+            ${ct.telefono_diretto?`<div style="font-size:12px;color:var(--txt-soft);">📞 ${esc(ct.telefono_diretto)}</div>`:''}
+            ${ct.linkedin_personale?`<div style="font-size:12px;"><a href="${esc(ct.linkedin_personale)}" target="_blank" style="color:var(--blue);text-decoration:none;">LinkedIn ↗</a></div>`:''}
+          </div>
+          ${S.ruolo==='admin'?`
+            <button class="btn btn-secondary btn-sm" onclick="openEditContatto('${ct.id}','${azId}')">✏️</button>
+            <button class="btn btn-danger btn-sm" onclick="delContatto('${ct.id}','${azId}')">🗑</button>
+            ${!ct.email?`<button class="btn btn-sm" style="background:#E8500A;color:#fff;" onclick="cercaEmailHunter('${ct.id}','${azId}')">Hunter</button>`:''}
+          `:''}
+        </div>`).join('')}`;
+    } else if(tabId==='azioni'){
+      const azA=S.azioni.filter(a=>a.azienda_id===azId);
+      const oggi=new Date().toISOString().slice(0,10);
+      tc.innerHTML=`
+        ${azA.length===0?'<div class="empty"><div class="ei">📅</div><p>Nessuna azione programmata</p></div>':
+        azA.map(a=>{
+          const scaduta=a.stato==='in_attesa'&&a.data_scadenza<oggi;
+          const cls=a.stato==='completata'?'ok':scaduta?'scaduta':a.priorita==='urgente'?'urgente':'ok';
+          const ct=S.contatti.find(c=>c.id===a.contatto_id);
+          const gestore=S.profili.find(p=>p.id===a.gestore_id);
+          return `<div class="azione-card ${cls}">
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="ac-tipo">${esc(a.tipo_azione)}</span>
+                <span class="badge-priorita p-${a.priorita}">${a.priorita}</span>
+                ${a.stato==='completata'?'<span style="font-size:11px;color:#16a34a;font-weight:700;">✓ Completata</span>':''}
+                ${a.stato==='annullata'?'<span style="font-size:11px;color:var(--txt-soft);">✕ Annullata</span>':''}
+              </div>
+              <div class="ac-data">${scaduta?'⚠️ ':''}Scadenza: ${fmt(a.data_scadenza)}${ct?` · ${esc(ct.nome)} ${esc(ct.cognome||'')}`:''}</div>
+              ${a.note?`<div class="ac-note">${esc(a.note)}</div>`:''}
+              ${gestore?`<div style="font-size:11px;color:var(--txt-faint);margin-top:4px;">Gestore: ${esc(gestore.nome)} ${esc(gestore.cognome||'')}</div>`:''}
+            </div>
+            ${S.ruolo==='admin'&&a.stato==='in_attesa'?`
+              <div style="display:flex;flex-direction:column;gap:5px;">
+                <button class="btn btn-sm" style="background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;" onclick="completaAzione('${a.id}','${azId}')">✓ Fatto</button>
+                <button class="btn btn-danger btn-sm" onclick="delAzione('${a.id}','${azId}')">✕</button>
+              </div>
+            `:''}
+          </div>`;
+        }).join('')}`;
+    } else if(tabId==='dettagli'){
+      tc.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div>
+          <div class="card-title">Dati Aziendali</div>
+          ${renderKV('Ragione Sociale',az.ragione_sociale)}
+          ${renderKV('Partita IVA',az.partita_iva,'mono')}
+          ${renderKV('Forma Giuridica',az.forma_giuridica)}
+          ${renderKV('N. Dipendenti',az.numero_dipendenti)}
+          ${renderKV('Codice ATECO',az.codice_ateco,'mono')}
+          ${renderKV('Desc. ATECO',az.descrizione_ateco)}
+          ${renderKV('Fatturato',az.fatturato_valore?fmtEuro(az.fatturato_valore):null)}
+          ${renderKV('Anno Bilancio',az.anno_bilancio)}
+        </div>
+        <div>
+          <div class="card-title">Contatti & Web</div>
+          ${renderKV('Indirizzo',az.indirizzo)}
+          ${renderKV('Comune',az.comune)}
+          ${renderKV('Provincia',az.provincia)}
+          ${renderKV('CAP',az.cap,'mono')}
+          ${renderKV('Telefono',az.telefono)}
+          ${renderKV('PEC',az.pec)}
+          ${az.sito_web?`<div style="padding:6px 0;border-bottom:1px solid var(--ew-grigio-ghost);"><span style="font-size:11px;color:var(--txt-soft);text-transform:uppercase;font-weight:700;">Sito Web</span><div style="margin-top:2px;"><a href="${esc(az.sito_web)}" target="_blank" style="color:var(--blue);text-decoration:none;font-size:13px;">${esc(az.sito_web)}</a></div></div>`:''}
+          ${az.linkedin_url?`<div style="padding:6px 0;border-bottom:1px solid var(--ew-grigio-ghost);"><span style="font-size:11px;color:var(--txt-soft);text-transform:uppercase;font-weight:700;">LinkedIn</span><div style="margin-top:2px;"><a href="${esc(az.linkedin_url)}" target="_blank" style="color:var(--blue);text-decoration:none;font-size:13px;">Profilo LinkedIn ↗</a></div></div>`:''}
+          ${az.note?renderKV('Note',az.note):''}
+          <div style="margin-top:12px;font-size:11px;color:var(--txt-faint);">Inserita il ${fmt(az.created_at)} · Aggiornata il ${fmt(az.updated_at)}</div>
+        </div>
+      </div>`;
+    }
+  };
+
+  document.querySelectorAll('#modal-box .tab').forEach(t=>t.addEventListener('click',()=>showTab(t.dataset.tab)));
+  showTab('timeline');
+
+  // Bottoni footer
+  if(S.ruolo==='admin'){
+    if($('btn-nuova-op')) $('btn-nuova-op').addEventListener('click',()=>openNuovaOperazione(azId));
+    if($('btn-nuovo-ct')) $('btn-nuovo-ct').addEventListener('click',()=>openAddContatto(azId));
+    if($('btn-nuova-az-azione')) $('btn-nuova-az-azione').addEventListener('click',()=>openNuovaAzione(azId));
+    if($('btn-edit-az')) $('btn-edit-az').addEventListener('click',()=>{ closeModal(); openEditAzienda(azId); });
+    if($('btn-del-az')) $('btn-del-az').addEventListener('click',()=>delAzienda(azId));
+    if($('sel-stato-az')) $('sel-stato-az').addEventListener('change',async e=>{
+      try{
+        await db('PATCH',T('aziende'),{flt:`id=eq.${azId}`,body:{stato_commerciale:e.target.value,updated_at:new Date().toISOString()}});
+        const idx=S.aziende.findIndex(a=>a.id===azId);
+        if(idx>=0) S.aziende[idx].stato_commerciale=e.target.value;
+        toast('Stato aggiornato');
+      }catch(err){toast('Errore: '+err.message,'err');}
+    });
+  }
+  openModal();
+}
+
+function renderKV(label,val,type=''){
+  if(!val&&val!==0) return '';
+  return `<div style="padding:6px 0;border-bottom:1px solid var(--ew-grigio-ghost);">
+    <span style="font-size:11px;color:var(--txt-soft);text-transform:uppercase;font-weight:700;">${esc(label)}</span>
+    <div style="margin-top:2px;font-size:13px;color:var(--txt);${type==='mono'?'font-family:DM Mono,monospace;':''}">${esc(String(val))}</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// ── ADD/EDIT AZIENDA ──────────────────────────────────
+// ═══════════════════════════════════════════════════════
+function openAddAzienda(){
+  $('modal-title').textContent='Nuova Azienda';
+  $('modal-box').className='modal modal-lg';
+  $('modal-body').innerHTML=formAzienda({});
+  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="btn-save-az">Aggiungi</button>';
+  $('btn-save-az').addEventListener('click',()=>saveAzienda(null));
+  openModal();
+}
+
+function openEditAzienda(azId){
+  const az=S.aziende.find(x=>x.id===azId); if(!az) return;
+  $('modal-title').textContent='Modifica Azienda';
+  $('modal-box').className='modal modal-lg';
+  $('modal-body').innerHTML=formAzienda(az);
+  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="btn-save-az">Salva</button>';
+  $('btn-save-az').addEventListener('click',()=>saveAzienda(azId));
+  openModal();
+}
+
+function formAzienda(az){
+  return `
+    <div class="frow"><div class="fgroup"><label>Ragione Sociale *</label><input id="az-rs" class="fi" value="${esc(az.ragione_sociale||'')}"/></div><div class="fgroup"><label>Partita IVA</label><input id="az-piva" class="fi" style="font-family:'DM Mono',monospace;" value="${esc(az.partita_iva||'')}"/></div></div>
+    <div class="frow three"><div class="fgroup"><label>Codice ATECO</label><input id="az-ateco" class="fi" style="font-family:'DM Mono',monospace;" value="${esc(az.codice_ateco||'')}"/></div><div class="fgroup"><label>Desc. ATECO</label><input id="az-dateco" class="fi" value="${esc(az.descrizione_ateco||'')}"/></div><div class="fgroup"><label>Forma Giuridica</label><input id="az-fgiur" class="fi" value="${esc(az.forma_giuridica||'')}"/></div></div>
+    <div class="frow"><div class="fgroup"><label>Fatturato (€)</label><input type="number" id="az-fatt" class="fi" value="${az.fatturato_valore||''}"/></div><div class="fgroup"><label>Anno Bilancio</label><input type="number" id="az-abilan" class="fi" value="${az.anno_bilancio||''}"/></div></div>
+    <div class="frow three"><div class="fgroup"><label>Comune</label><input id="az-comune" class="fi" value="${esc(az.comune||'')}"/></div><div class="fgroup"><label>Provincia</label><input id="az-prov" class="fi" maxlength="3" style="text-transform:uppercase;" value="${esc(az.provincia||'')}"/></div><div class="fgroup"><label>CAP</label><input id="az-cap" class="fi" maxlength="5" style="font-family:'DM Mono',monospace;" value="${esc(az.cap||'')}"/></div></div>
+    <div class="frow full"><div class="fgroup"><label>Indirizzo</label><input id="az-ind" class="fi" value="${esc(az.indirizzo||'')}"/></div></div>
+    <div class="frow"><div class="fgroup"><label>Sito Web</label><input id="az-web" class="fi" placeholder="https://..." value="${esc(az.sito_web||'')}"/></div><div class="fgroup"><label>LinkedIn</label><input id="az-li" class="fi" placeholder="https://linkedin.com/company/..." value="${esc(az.linkedin_url||'')}"/></div></div>
+    <div class="frow"><div class="fgroup"><label>Telefono</label><input id="az-tel" class="fi" value="${esc(az.telefono||'')}"/></div><div class="fgroup"><label>PEC</label><input id="az-pec" class="fi" value="${esc(az.pec||'')}"/></div></div>
+    <div class="frow full"><div class="fgroup"><label>Stato Commerciale</label><select id="az-stato" class="fse">
+      <option value="prospect" ${(az.stato_commerciale||'prospect')==='prospect'?'selected':''}>Prospect</option>
+      <option value="in_trattativa" ${az.stato_commerciale==='in_trattativa'?'selected':''}>In Trattativa</option>
+      <option value="cliente" ${az.stato_commerciale==='cliente'?'selected':''}>Cliente</option>
+      <option value="perso" ${az.stato_commerciale==='perso'?'selected':''}>Perso</option>
+      <option value="non_interessato" ${az.stato_commerciale==='non_interessato'?'selected':''}>Non Interessato</option>
+    </select></div></div>
+    <div class="frow full"><div class="fgroup"><label>Note</label><textarea id="az-note" class="fta">${esc(az.note||'')}</textarea></div></div>`;
+}
+
+async function saveAzienda(azId){
+  const rs=$('az-rs').value.trim(); if(!rs){ toast('Ragione sociale obbligatoria','warn'); return; }
+  const body={
+    ragione_sociale:rs,
+    partita_iva:$('az-piva').value.trim()||null,
+    codice_ateco:$('az-ateco').value.trim()||null,
+    descrizione_ateco:$('az-dateco').value.trim()||null,
+    fatturato_valore:parseFloat($('az-fatt').value)||null,
+    anno_bilancio:parseInt($('az-abilan').value)||null,
+    comune:$('az-comune').value.trim()||null,
+    provincia:($('az-prov').value.trim().toUpperCase())||null,
+    cap:$('az-cap').value.trim()||null,
+    indirizzo:$('az-ind').value.trim()||null,
+    sito_web:$('az-web').value.trim()||null,
+    linkedin_url:$('az-li').value.trim()||null,
+    telefono:$('az-tel').value.trim()||null,
+    pec:$('az-pec').value.trim()||null,
+    stato_commerciale:$('az-stato').value,
+    nota:$('az-note').value.trim()||null,
+    inserito_manualmente:true,
+    updated_at:new Date().toISOString(),
+  };
+  // Rimuovi nulls
+  Object.keys(body).forEach(k=>{ if(body[k]===null) delete body[k]; });
+  try{
+    if(azId){
+      await db('PATCH',T('aziende'),{flt:`id=eq.${azId}`,body});
+      const i=S.aziende.findIndex(a=>a.id===azId);
+      if(i>=0) S.aziende[i]={...S.aziende[i],...body};
+      toast('Azienda aggiornata');
+    } else {
+      body.created_at=new Date().toISOString();
+      const res=await db('POST',T('aziende'),{body});
+      if(res&&res[0]) S.aziende.unshift(res[0]);
+      toast('Azienda aggiunta');
+    }
+    closeModal();
+    renderAziende($('pb'));
+    updateBadges();
+  }catch(e){ toast('Errore: '+e.message,'err'); }
+}
+
+async function delAzienda(azId){
+  if(!confirm('Eliminare questa azienda e tutti i dati correlati?')) return;
+  try{
+    await db('DELETE',T('aziende'),{flt:`id=eq.${azId}`});
+    S.aziende=S.aziende.filter(a=>a.id!==azId);
+    S.contatti=S.contatti.filter(c=>c.azienda_id!==azId);
+    S.operazioni=S.operazioni.filter(o=>o.azienda_id!==azId);
+    S.azioni=S.azioni.filter(a=>a.azienda_id!==azId);
+    toast('Azienda eliminata');
+    closeModal();
+    renderAziende($('pb'));
+    updateBadges();
+  }catch(e){ toast('Errore: '+e.message,'err'); }
+}
+
+// ═══════════════════════════════════════════════════════
+// ── CERCA OPENAPI ─────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+function openCercaOpenapi(){
+  $('modal-title').textContent='Cerca Aziende su Openapi.it';
+  $('modal-box').className='modal';
+  const hasKey=!!S.settings['openapi_key'];
+  $('modal-body').innerHTML=`
+    ${!hasKey?'<div class="warn-box">⚠️ Configura la chiave Openapi.it nelle Impostazioni prima di procedere.</div>':''}
+    <div class="info-box">Cerca aziende italiane per codice ATECO e range di fatturato. I risultati vengono salvati automaticamente evitando duplicati per Partita IVA.</div>
+    <div class="frow full"><div class="fgroup"><label>Codice ATECO *</label><input id="op-ateco" class="fi" placeholder="es. 62.01.00" style="font-family:'DM Mono',monospace;"/></div></div>
+    <div class="frow"><div class="fgroup"><label>Fatturato minimo (€)</label><input type="number" id="op-fmin" class="fi" placeholder="es. 500000"/></div><div class="fgroup"><label>Fatturato massimo (€)</label><input type="number" id="op-fmax" class="fi" placeholder="es. 5000000"/></div></div>
+    <div class="frow"><div class="fgroup"><label>Comune (opzionale)</label><input id="op-comune" class="fi" placeholder="es. Milano"/></div><div class="fgroup"><label>Provincia (opzionale)</label><input id="op-prov" class="fi" maxlength="3" style="text-transform:uppercase;" placeholder="es. MI"/></div></div>`;
+  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="op-avvia">🔍 Avvia ricerca</button>';
+  $('op-avvia').addEventListener('click',async()=>{
+    if(!S.settings['openapi_key']){ toast('Configura la chiave Openapi.it nelle Impostazioni','warn'); return; }
+    const ateco=$('op-ateco').value.trim(); if(!ateco){ toast('Codice ATECO obbligatorio','warn'); return; }
+    const btn=$('op-avvia'); btn.disabled=true; btn.textContent='Ricerca in corso...';
+    try{
+      const data=await callFn('crm-cerca-prospect',{
+        codice_ateco:ateco,
+        fatturato_min:parseFloat($('op-fmin').value)||null,
+        fatturato_max:parseFloat($('op-fmax').value)||null,
+        comune:$('op-comune').value.trim()||null,
+        provincia:$('op-prov').value.trim().toUpperCase()||null,
+        openapi_key:S.settings['openapi_key']
+      });
+      if(data.ok){
+        toast(`Trovate ${data.trovati} aziende: ${data.nuovi} nuove, ${data.duplicati} già presenti`);
+        await loadAll();
+        closeModal();
+        renderAziende($('pb'));
+      } else toast('Errore: '+(data.error||'sconosciuto'),'err');
+    }catch(e){ toast('Errore Edge Function','err'); }
+    btn.disabled=false; btn.textContent='🔍 Avvia ricerca';
+  });
+  openModal();
+}
+
+// ═══════════════════════════════════════════════════════
+// ── OPERAZIONI ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+function openNuovaOperazione(azId){
+  const contatti=S.contatti.filter(c=>c.azienda_id===azId);
+  $('modal-title').textContent='Nuova Operazione';
+  $('modal-box').className='modal';
+  $('modal-body').innerHTML=`
+    <div class="frow full"><div class="fgroup"><label>Tipo Operazione *</label><select id="op-tipo" class="fse">
+      <option>Email inviata</option><option>Email ricevuta</option><option>Telefonata</option><option>Incontro</option><option>Nota commerciale</option><option>Preventivo inviato</option><option>Offerta accettata</option>
+    </select></div></div>
+    ${contatti.length?`<div class="frow full"><div class="fgroup"><label>Contatto (opzionale)</label><select id="op-ct" class="fse"><option value="">— Nessun contatto specifico —</option>${contatti.map(c=>`<option value="${c.id}">${esc(c.nome)} ${esc(c.cognome||'')}${c.ruolo_aziendale?' — '+esc(c.ruolo_aziendale):''}</option>`).join('')}</select></div></div>`:''}
+    <div class="frow full"><div class="fgroup"><label>Data *</label><input type="datetime-local" id="op-data" class="fi" value="${new Date().toISOString().slice(0,16)}"/></div></div>
+    <div class="frow full"><div class="fgroup"><label>Dettagli</label><textarea id="op-det" class="fta" placeholder="Descrizione dell'operazione..."></textarea></div></div>`;
+  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="op-save">Salva</button>';
+  $('op-save').addEventListener('click',async()=>{
+    const tipo=$('op-tipo').value;
+    const data=$('op-data').value; if(!data){ toast('Data obbligatoria','warn'); return; }
+    try{
+      const body={azienda_id:azId,tipo_operazione:tipo,dettagli:$('op-det').value.trim()||null,data_operazione:new Date(data).toISOString(),operatore_id:S.user.id,contatto_id:($('op-ct')&&$('op-ct').value)||null};
+      const res=await db('POST',T('operazioni'),{body});
+      if(res&&res[0]) S.operazioni.unshift(res[0]);
+      toast('Operazione salvata');
+      closeModal();
+      openScheda(azId);
+    }catch(e){ toast('Errore: '+e.message,'err'); }
+  });
+  openModal();
+}
+
+async function delOperazione(opId, azId){
+  if(!confirm('Eliminare questa operazione?')) return;
+  try{
+    await db('DELETE',T('operazioni'),{flt:`id=eq.${opId}`});
+    S.operazioni=S.operazioni.filter(o=>o.id!==opId);
+    toast('Operazione eliminata');
+    closeModal(); openScheda(azId);
+  }catch(e){ toast('Errore: '+e.message,'err'); }
+}
+
+// ═══════════════════════════════════════════════════════
+// ── CONTATTI ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+function openAddContatto(azId){
+  $('modal-title').textContent='Nuovo Contatto';
+  $('modal-box').className='modal';
+  $('modal-body').innerHTML=formContatto({});
+  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="ct-save">Aggiungi</button>';
+  $('ct-save').addEventListener('click',()=>saveContatto(null,azId));
+  openModal();
+}
+
+function openEditContatto(ctId, azId){
+  const ct=S.contatti.find(x=>x.id===ctId); if(!ct) return;
+  $('modal-title').textContent='Modifica Contatto';
+  $('modal-box').className='modal';
+  // Aggiunge select per spostamento azienda
+  const altre=S.aziende.filter(a=>a.id!==azId);
+  $('modal-body').innerHTML=formContatto(ct)+`
+    <div class="frow full" style="margin-top:8px;"><div class="fgroup">
+      <label>Sposta ad altra azienda (opzionale)</label>
+      <select id="ct-az-move" class="fse"><option value="${azId}">— Rimani in questa azienda —</option>${altre.map(a=>`<option value="${a.id}">${esc(a.ragione_sociale)}</option>`).join('')}</select>
+    </div></div>`;
+  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="ct-save">Salva</button>';
+  $('ct-save').addEventListener('click',()=>saveContatto(ctId,$('ct-az-move').value));
+  openModal();
+}
+
+function formContatto(ct){
+  return `
+    <div class="frow"><div class="fgroup"><label>Nome *</label><input id="ct-nome" class="fi" value="${esc(ct.nome||'')}"/></div><div class="fgroup"><label>Cognome</label><input id="ct-cog" class="fi" value="${esc(ct.cognome||'')}"/></div></div>
+    <div class="frow full"><div class="fgroup"><label>Ruolo in Azienda</label><input id="ct-ruolo" class="fi" placeholder="es. IT Manager, Titolare, CFO..." value="${esc(ct.ruolo_aziendale||'')}"/></div></div>
+    <div class="frow"><div class="fgroup"><label>Email</label><input type="email" id="ct-email" class="fi" value="${esc(ct.email||'')}"/></div><div class="fgroup"><label>Telefono Diretto</label><input id="ct-tel" class="fi" value="${esc(ct.telefono_diretto||'')}"/></div></div>
+    <div class="frow full"><div class="fgroup"><label>LinkedIn</label><input id="ct-li" class="fi" placeholder="https://linkedin.com/in/..." value="${esc(ct.linkedin_personale||'')}"/></div></div>
+    <div class="frow full"><div class="fgroup"><label>Note</label><textarea id="ct-note" class="fta">${esc(ct.note||'')}</textarea></div></div>`;
+}
+
+async function saveContatto(ctId, azId){
+  const nome=$('ct-nome').value.trim(); if(!nome){ toast('Nome obbligatorio','warn'); return; }
+  const body={
+    azienda_id:azId,
+    nome, cognome:$('ct-cog').value.trim()||null,
+    ruolo_aziendale:$('ct-ruolo').value.trim()||null,
+    email:$('ct-email').value.trim()||null,
+    telefono_diretto:$('ct-tel').value.trim()||null,
+    linkedin_personale:$('ct-li').value.trim()||null,
+    note:$('ct-note').value.trim()||null,
+    updated_at:new Date().toISOString(),
+  };
+  try{
+    if(ctId){
+      await db('PATCH',T('contatti'),{flt:`id=eq.${ctId}`,body});
+      const i=S.contatti.findIndex(c=>c.id===ctId);
+      if(i>=0) S.contatti[i]={...S.contatti[i],...body};
+      toast('Contatto aggiornato');
+    } else {
+      body.created_at=new Date().toISOString();
+      const res=await db('POST',T('contatti'),{body});
+      if(res&&res[0]) S.contatti.push(res[0]);
+      toast('Contatto aggiunto');
+    }
+    closeModal();
+    openScheda(azId);
+  }catch(e){ toast('Errore: '+e.message,'err'); }
+}
+
+async function delContatto(ctId, azId){
+  if(!confirm('Eliminare questo contatto?')) return;
+  try{
+    await db('DELETE',T('contatti'),{flt:`id=eq.${ctId}`});
+    S.contatti=S.contatti.filter(c=>c.id!==ctId);
+    toast('Contatto eliminato');
+    closeModal(); openScheda(azId);
+  }catch(e){ toast('Errore: '+e.message,'err'); }
+}
+
+// ═══════════════════════════════════════════════════════
+// ── HUNTER.IO email ricerca ──────────────────────────
+// ═══════════════════════════════════════════════════════
+async function cercaEmailHunter(ctId, azId){
+  if(!S.settings['hunter_key']){ toast('Configura Hunter.io API Key nelle Impostazioni','warn'); return; }
+  const ct=S.contatti.find(c=>c.id===ctId); if(!ct) return;
+  const az=S.aziende.find(a=>a.id===azId); if(!az) return;
+  if(!az.sito_web){ toast("Azienda senza sito web — impossibile cercare con Hunter",'warn'); return; }
+  toast('Ricerca Hunter.io in corso...');
+  const domain=az.sito_web.replace(/https?:\/\//,'').replace(/\/.*/,'');
+  try{
+    const res=await fetch(`https://api.hunter.io/v2/email-finder?domain=${domain}&first_name=${encodeURIComponent(ct.nome||'')}&last_name=${encodeURIComponent(ct.cognome||'')}&api_key=${S.settings['hunter_key']}`);
+    const data=await res.json();
+    if(data.data&&data.data.email){
+      const email=data.data.email;
+      if(confirm(`Trovata email: ${email}\n\nVuoi salvarla per questo contatto?`)){
+        await db('PATCH',T('contatti'),{flt:`id=eq.${ctId}`,body:{email,updated_at:new Date().toISOString()}});
+        const i=S.contatti.findIndex(c=>c.id===ctId);
+        if(i>=0) S.contatti[i].email=email;
+        toast('Email salvata ✓');
+        closeModal(); openScheda(azId);
+      }
+    } else {
+      toast('Nessuna email trovata per questo contatto','warn');
+    }
+  }catch(e){ toast('Errore Hunter.io: '+e.message,'err'); }
+}
+
+// ═══════════════════════════════════════════════════════
+// ── PROSSIME AZIONI ───────────────────────────────────
+// ═══════════════════════════════════════════════════════
+function openNuovaAzione(azId){
+  const contatti=S.contatti.filter(c=>c.azienda_id===azId);
+  const profili=S.profili.filter(p=>p.attivo);
+  $('modal-title').textContent='Nuova Prossima Azione';
+  $('modal-box').className='modal';
+  $('modal-body').innerHTML=`
+    <div class="frow full"><div class="fgroup"><label>Tipo Azione *</label><select id="az-tipo" class="fse">
+      <option>Ricontattare via email</option><option>Chiamata di follow-up</option><option>Inviare preventivo</option><option>Fissare incontro</option><option>Inviare materiale</option><option>Demo prodotto</option><option>Altro</option>
+    </select></div></div>
+    <div class="frow"><div class="fgroup"><label>Data Scadenza *</label><input type="date" id="az-scad" class="fi" value="${new Date(Date.now()+7*86400000).toISOString().slice(0,10)}"/></div>
+    <div class="fgroup"><label>Priorità</label><select id="az-prior" class="fse">
+      <option value="bassa">Bassa</option><option value="normale" selected>Normale</option><option value="alta">Alta</option><option value="urgente">Urgente</option>
+    </select></div></div>
+    ${contatti.length?`<div class="frow full"><div class="fgroup"><label>Contatto (opzionale)</label><select id="az-ct" class="fse"><option value="">— Nessuno —</option>${contatti.map(c=>`<option value="${c.id}">${esc(c.nome)} ${esc(c.cognome||'')}</option>`).join('')}</select></div></div>`:''}
+    ${profili.length?`<div class="frow full"><div class="fgroup"><label>Assegna a</label><select id="az-gest" class="fse"><option value="">— Nessuno —</option>${profili.map(p=>`<option value="${p.id}">${esc(p.nome)} ${esc(p.cognome||'')}</option>`).join('')}</select></div></div>`:''}
+    <div class="frow full"><div class="fgroup"><label>Note</label><textarea id="az-note" class="fta"></textarea></div></div>`;
+  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="az-save">Salva</button>';
+  $('az-save').addEventListener('click',async()=>{
+    const tipo=$('az-tipo').value, scad=$('az-scad').value;
+    if(!scad){ toast('Data scadenza obbligatoria','warn'); return; }
+    try{
+      const body={azienda_id:azId,tipo_azione:tipo,data_scadenza:scad,priorita:$('az-prior').value,stato:'in_attesa',
+        contatto_id:($('az-ct')&&$('az-ct').value)||null,
+        gestore_id:($('az-gest')&&$('az-gest').value)||null,
+        note:$('az-note').value.trim()||null,
+        created_at:new Date().toISOString()};
+      const res=await db('POST',T('prossime_azioni'),{body});
+      if(res&&res[0]) S.azioni.push(res[0]);
+      toast('Azione aggiunta');
+      updateBadges();
+      closeModal();
+      openScheda(azId);
+    }catch(e){ toast('Errore: '+e.message,'err'); }
+  });
+  openModal();
+}
+
+async function completaAzione(azId_azione, azId){
+  try{
+    await db('PATCH',T('prossime_azioni'),{flt:`id=eq.${azId_azione}`,body:{stato:'completata'}});
+    const i=S.azioni.findIndex(a=>a.id===azId_azione);
+    if(i>=0) S.azioni[i].stato='completata';
+    toast('Azione completata ✓');
+    updateBadges();
+    closeModal(); openScheda(azId);
+  }catch(e){ toast('Errore: '+e.message,'err'); }
+}
+
+async function delAzione(azId_azione, azId){
+  if(!confirm('Eliminare questa azione?')) return;
+  try{
+    await db('DELETE',T('prossime_azioni'),{flt:`id=eq.${azId_azione}`});
+    S.azioni=S.azioni.filter(a=>a.id!==azId_azione);
+    toast('Azione eliminata');
+    updateBadges();
+    closeModal(); openScheda(azId);
+  }catch(e){ toast('Errore: '+e.message,'err'); }
+}
+
+// ═══════════════════════════════════════════════════════
+// ── PAGINA PROSSIME AZIONI ────────────────────────────
+// ═══════════════════════════════════════════════════════
+function renderAzioni(pb){
+  const oggi=new Date().toISOString().slice(0,10);
+  const pending=S.azioni.filter(a=>a.stato==='in_attesa').sort((a,b)=>a.data_scadenza>b.data_scadenza?1:-1);
+  const scadute=pending.filter(a=>a.data_scadenza<oggi);
+  const future=pending.filter(a=>a.data_scadenza>=oggi);
+
+  const renderAzioneGlobale=(a)=>{
+    const az=S.aziende.find(x=>x.id===a.azienda_id);
+    const ct=S.contatti.find(c=>c.id===a.contatto_id);
+    const scaduta=a.data_scadenza<oggi;
+    return `<div class="azione-card ${scaduta?'scaduta':a.priorita==='urgente'?'urgente':'ok'}">
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="ac-tipo">${esc(a.tipo_azione)}</span>
+          <span class="badge-priorita p-${a.priorita}">${a.priorita}</span>
+        </div>
+        <div class="ac-azienda" onclick="openScheda('${a.azienda_id}')" style="cursor:pointer;">${az?esc(az.ragione_sociale):'—'} ↗</div>
+        <div class="ac-data">${scaduta?'⚠️ SCADUTA — ':''}Scadenza: ${fmt(a.data_scadenza)}${ct?` · ${esc(ct.nome)} ${esc(ct.cognome||'')}`:''}</div>
+        ${a.note?`<div class="ac-note">${esc(a.note)}</div>`:''}
+      </div>
+      ${S.ruolo==='admin'?`<div style="display:flex;flex-direction:column;gap:5px;">
+        <button class="btn btn-sm" style="background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;" onclick="completaAzioneGlobal('${a.id}')">✓ Fatto</button>
+      </div>`:''}
+    </div>`;
+  };
+
+  pb.innerHTML=`<div class="page-wrap">
+    <div class="page-header">
+      <div><div class="page-title">Prossime Azioni</div><div class="page-subtitle">${pending.length} azioni in attesa${scadute.length?` · <span style="color:var(--red);">${scadute.length} scadute</span>`:''}</div></div>
+      ${S.ruolo==='admin'?'<button class="btn btn-primary" id="btn-new-azione-global">+ Nuova Azione</button>':''}
+    </div>
+    ${scadute.length?`<div style="margin-bottom:24px;">
+      <div class="card-title" style="color:var(--red);margin-bottom:12px;">⚠️ SCADUTE (${scadute.length})</div>
+      ${scadute.map(renderAzioneGlobale).join('')}
+    </div>`:''}
+    ${future.length?`<div>
+      <div class="card-title" style="margin-bottom:12px;">In Agenda (${future.length})</div>
+      ${future.map(renderAzioneGlobale).join('')}
+    </div>`:''}
+    ${pending.length===0?'<div class="empty"><div class="ei">✅</div><p>Nessuna azione in attesa</p><small>Ben fatto! Sei in pari.</small></div>':''}
+  </div>`;
+
+  if($('btn-new-azione-global')){
+    $('btn-new-azione-global').addEventListener('click',()=>{
+      // modale senza azienda pre-selezionata
+      openNuovaAzioneGlobale();
+    });
+  }
+}
+
+function openNuovaAzioneGlobale(){
+  $('modal-title').textContent='Nuova Prossima Azione';
+  $('modal-box').className='modal';
+  const profili=S.profili.filter(p=>p.attivo);
+  $('modal-body').innerHTML=`
+    <div class="frow full"><div class="fgroup"><label>Azienda *</label><select id="azg-az" class="fse"><option value="">— Seleziona —</option>${S.aziende.map(a=>`<option value="${a.id}">${esc(a.ragione_sociale)}</option>`).join('')}</select></div></div>
+    <div class="frow full"><div class="fgroup"><label>Tipo Azione *</label><select id="azg-tipo" class="fse">
+      <option>Ricontattare via email</option><option>Chiamata di follow-up</option><option>Inviare preventivo</option><option>Fissare incontro</option><option>Inviare materiale</option><option>Demo prodotto</option><option>Altro</option>
+    </select></div></div>
+    <div class="frow"><div class="fgroup"><label>Data Scadenza *</label><input type="date" id="azg-scad" class="fi" value="${new Date(Date.now()+7*86400000).toISOString().slice(0,10)}"/></div>
+    <div class="fgroup"><label>Priorità</label><select id="azg-prior" class="fse">
+      <option value="bassa">Bassa</option><option value="normale" selected>Normale</option><option value="alta">Alta</option><option value="urgente">Urgente</option>
+    </select></div></div>
+    ${profili.length?`<div class="frow full"><div class="fgroup"><label>Assegna a</label><select id="azg-gest" class="fse"><option value="">— Nessuno —</option>${profili.map(p=>`<option value="${p.id}">${esc(p.nome)} ${esc(p.cognome||'')}</option>`).join('')}</select></div></div>`:''}
+    <div class="frow full"><div class="fgroup"><label>Note</label><textarea id="azg-note" class="fta"></textarea></div></div>`;
+  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="azg-save">Salva</button>';
+  $('azg-save').addEventListener('click',async()=>{
+    const azId=$('azg-az').value, tipo=$('azg-tipo').value, scad=$('azg-scad').value;
+    if(!azId){ toast('Seleziona un\'azienda','warn'); return; }
+    if(!scad){ toast('Data scadenza obbligatoria','warn'); return; }
+    try{
+      const body={azienda_id:azId,tipo_azione:tipo,data_scadenza:scad,priorita:$('azg-prior').value,stato:'in_attesa',
+        gestore_id:($('azg-gest')&&$('azg-gest').value)||null,
+        note:$('azg-note').value.trim()||null,
+        created_at:new Date().toISOString()};
+      const res=await db('POST',T('prossime_azioni'),{body});
+      if(res&&res[0]) S.azioni.push(res[0]);
+      toast('Azione aggiunta');
+      updateBadges();
+      closeModal();
+      renderAzioni($('pb'));
+    }catch(e){ toast('Errore: '+e.message,'err'); }
+  });
+  openModal();
+}
+
+async function completaAzioneGlobal(azId){
+  try{
+    await db('PATCH',T('prossime_azioni'),{flt:`id=eq.${azId}`,body:{stato:'completata'}});
+    const i=S.azioni.findIndex(a=>a.id===azId);
+    if(i>=0) S.azioni[i].stato='completata';
+    toast('Azione completata ✓');
+    updateBadges();
+    renderAzioni($('pb'));
+  }catch(e){ toast('Errore: '+e.message,'err'); }
+}
+
+// ═══════════════════════════════════════════════════════
+// ── SETTINGS ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+function renderSettings(pb){
+  pb.innerHTML=`<div class="page-wrap" style="max-width:720px;">
+    <div class="page-header"><div><div class="page-title">Impostazioni</div><div class="page-subtitle">Configurazione chiavi API e preferenze</div></div></div>
+    <div class="card">
+      <div class="card-title">Supabase</div>
+      <div class="info-box" style="font-family:'DM Mono',monospace;font-size:12px;">
+        URL: ${esc(CFG.URL)}<br>Build: ${BUILD}
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">Chiavi API</div>
+      ${renderSettingRow('openapi_key','Openapi.it API Key','Usata per la ricerca automatica di aziende per ATECO e fatturato')}
+      ${renderSettingRow('hunter_key','Hunter.io API Key','Ricerca automatica email dei contatti tramite dominio aziendale')}
+      ${renderSettingRow('resend_key','Resend API Key','Invio email transazionali (piano free: 3.000/mese, 100/giorno)')}
+      ${renderSettingRow('email_mittente','Email mittente','Es. crm@e-wenco.it — deve essere un dominio verificato su Resend')}
+      ${renderSettingRow('followup_giorni','Giorni follow-up','Numero di giorni dopo i quali un\'azione in attesa viene segnalata come urgente','number')}
+    </div>
+  </div>`;
+
+  document.querySelectorAll('.key-input').forEach(inp=>{
+    inp.addEventListener('change',async()=>{
+      const chiave=inp.dataset.key;
+      try{
+        await db('POST',T('settings'),{body:{chiave,valore:inp.value.trim()}});
+        // upsert non funziona con anon, usiamo patch+post con ignore duplicate
+        S.settings[chiave]=inp.value.trim();
+        inp.classList.add('saved');
+        setTimeout(()=>inp.classList.remove('saved'),2000);
+        toast('Impostazione salvata');
+      }catch(e){
+        // Prova con PATCH
+        try{
+          await db('PATCH',T('settings'),{flt:`chiave=eq.${chiave}`,body:{valore:inp.value.trim()}});
+          S.settings[chiave]=inp.value.trim();
+          inp.classList.add('saved');
+          setTimeout(()=>inp.classList.remove('saved'),2000);
+          toast('Impostazione salvata');
+        }catch(e2){ toast('Errore salvataggio','err'); }
+      }
+    });
+  });
+}
+
+function renderSettingRow(chiave,label,desc,type='text'){
+  const val=esc(S.settings[chiave]||'');
+  return `<div class="setting-row">
+    <div><div class="setting-lbl">${esc(label)}</div><div class="setting-desc">${esc(desc)}</div></div>
+    <input type="${type}" class="key-input ${val?'saved':''}" data-key="${chiave}" value="${val}" placeholder="Inserisci..."/>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// ── UTENTI ────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+function renderUtenti(pb){
+  pb.innerHTML=`<div class="page-wrap" style="max-width:800px;">
+    <div class="page-header">
+      <div><div class="page-title">Utenti</div><div class="page-subtitle">Gestione accessi al CRM E-wenco</div></div>
+      <button class="btn btn-primary" id="btn-new-user">+ Nuovo Utente</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Utenti attivi (${S.profili.length})</div>
+      ${S.profili.length===0?'<div class="empty"><div class="ei">👥</div><p>Nessun utente configurato</p></div>':
+      S.profili.map(u=>`<div class="user-row">
+        <div class="user-av">${(u.nome||'?')[0].toUpperCase()}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;color:var(--txt);">${esc(u.nome||'')} ${esc(u.cognome||'')}</div>
+          <div style="font-size:12px;color:var(--txt-soft);">${esc(u.email)}</div>
+        </div>
+        <span class="tb-role" style="background:${u.ruolo==='admin'?'var(--ew-verde-xlight)':'var(--ew-grigio-ghost)'};color:${u.ruolo==='admin'?'var(--ew-verde-dark)':'var(--txt-soft)'};padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;">${esc(u.ruolo)}</span>
+        <span style="font-size:11px;padding:3px 9px;border-radius:20px;background:${u.attivo?'#dcfce7':'var(--red-light)'};color:${u.attivo?'#16a34a':'var(--red)'};font-weight:700;">${u.attivo?'Attivo':'Disabilitato'}</span>
+        <button class="btn btn-secondary btn-sm" onclick="openEditUser('${u.id}')">✏️</button>
+        ${u.id!==S.user.id?`<button class="btn btn-danger btn-sm" onclick="delUser('${u.id}')">🗑</button>`:''}
+      </div>`).join('')}
+    </div>
+  </div>`;
+  $('btn-new-user').addEventListener('click',openNewUser);
+}
+
+function openNewUser(){
+  $('modal-title').textContent='Nuovo Utente';
+  $('modal-box').className='modal';
+  $('modal-body').innerHTML=`
+    <div class="frow"><div class="fgroup"><label>Nome *</label><input id="u-nome" class="fi"/></div><div class="fgroup"><label>Cognome *</label><input id="u-cog" class="fi"/></div></div>
+    <div class="frow full"><div class="fgroup"><label>Email *</label><input type="email" id="u-email" class="fi"/></div></div>
+    <div class="frow"><div class="fgroup"><label>Password *</label><input type="password" id="u-pwd" class="fi" placeholder="min. 6 caratteri"/></div>
+    <div class="fgroup"><label>Ruolo</label><select id="u-ruolo" class="fse"><option value="viewer">Viewer</option><option value="admin">Admin</option></select></div></div>`;
+  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="u-save">Crea Utente</button>';
+  $('u-save').addEventListener('click',async()=>{
+    const nome=$('u-nome').value.trim(),cog=$('u-cog').value.trim(),email=$('u-email').value.trim(),pwd=$('u-pwd').value,ruolo=$('u-ruolo').value;
+    if(!nome||!cog||!email||!pwd){ toast('Tutti i campi sono obbligatori','warn'); return; }
+    try{
+      const data=await callFn('crm-manage-user',{action:'create',email,password:pwd,nome,cognome:cog,ruolo});
+      if(!data.ok){ toast('Errore: '+data.error,'err'); return; }
+      await loadAll(); toast('Utente creato'); closeModal(); renderUtenti($('pb'));
+    }catch(e){ toast('Errore: '+e.message,'err'); }
+  });
+  openModal();
+}
+
+function openEditUser(uid){
+  const u=S.profili.find(x=>x.id===uid); if(!u) return;
+  $('modal-title').textContent='Modifica Utente';
+  $('modal-box').className='modal';
+  $('modal-body').innerHTML=`
+    <div class="frow"><div class="fgroup"><label>Nome</label><input id="u-nome" class="fi" value="${esc(u.nome||'')}"/></div><div class="fgroup"><label>Cognome</label><input id="u-cog" class="fi" value="${esc(u.cognome||'')}"/></div></div>
+    <div class="frow full"><div class="fgroup"><label>Email (sola lettura)</label><input class="fi" value="${esc(u.email)}" readonly style="background:var(--ew-grigio-ghost);"/></div></div>
+    <div class="frow"><div class="fgroup"><label>Ruolo</label><select id="u-ruolo" class="fse"><option value="viewer" ${u.ruolo==='viewer'?'selected':''}>Viewer</option><option value="admin" ${u.ruolo==='admin'?'selected':''}>Admin</option></select></div>
+    <div class="fgroup"><label>Stato</label><select id="u-attivo" class="fse"><option value="true" ${u.attivo?'selected':''}>Attivo</option><option value="false" ${!u.attivo?'selected':''}>Disabilitato</option></select></div></div>
+    <div class="frow full"><div class="fgroup"><label>Nuova Password (lascia vuoto per non cambiare)</label><input type="password" id="u-pwd" class="fi" placeholder="min. 6 caratteri"/></div></div>`;
+  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="u-save">Salva</button>';
+  $('u-save').addEventListener('click',async()=>{
+    const payload={action:'update',user_id:uid,nome:$('u-nome').value.trim(),cognome:$('u-cog').value.trim(),ruolo:$('u-ruolo').value,attivo:$('u-attivo').value==='true'};
+    if($('u-pwd').value) payload.password=$('u-pwd').value;
+    try{
+      const data=await callFn('crm-manage-user',payload);
+      if(!data.ok){ toast('Errore: '+data.error,'err'); return; }
+      await loadAll(); toast('Utente aggiornato'); closeModal(); renderUtenti($('pb'));
+    }catch(e){ toast('Errore: '+e.message,'err'); }
+  });
+  openModal();
+}
+
+async function delUser(uid){
+  if(!confirm('Eliminare il profilo utente? L\'account auth non sarà eliminato.')) return;
+  try{
+    const data=await callFn('crm-manage-user',{action:'delete_profile',user_id:uid});
+    if(!data.ok){ toast('Errore: '+data.error,'err'); return; }
+    S.profili=S.profili.filter(p=>p.id!==uid);
+    toast('Utente rimosso'); renderUtenti($('pb'));
+  }catch(e){ toast('Errore: '+e.message,'err'); }
+}
+</script>
+</body>
+</html>
