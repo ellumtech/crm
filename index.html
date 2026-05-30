@@ -951,7 +951,10 @@ function openCercaOpenapi(){
         await loadAll();
         closeModal();
         renderAziende($('pb'));
-      } else toast('Errore: '+(data.error||'sconosciuto'),'err');
+      } else {
+        console.error('Errore crm-cerca-prospect:', data);
+        toast('Errore: '+(data.error||'sconosciuto'),'err');
+      }
     }catch(e){ toast('Errore Edge Function: '+e.message,'err'); }
     btn.disabled=false; btn.innerHTML='🔍 Avvia ricerca';
   });
