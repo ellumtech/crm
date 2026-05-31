@@ -1292,22 +1292,28 @@ function renderSettings(pb){
   document.querySelectorAll('.key-input').forEach(inp=>{
     inp.addEventListener('change',async()=>{
       const chiave=inp.dataset.key;
+      const valore=inp.value.trim();
       try{
-        await db('POST',T('settings'),{body:{chiave,valore:inp.value.trim()}});
-        // upsert non funziona con anon, usiamo patch+post con ignore duplicate
-        S.settings[chiave]=inp.value.trim();
+        // Usa upsert via header Prefer — funziona con anon key se RLS è disabilitato
+        const res = await fetch(`${CFG.URL}/rest/v1/${T('settings')}`, {
+          method: 'POST',
+          headers: {
+            'apikey': CFG.KEY,
+            'Authorization': `Bearer ${S.token||CFG.KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates,return=minimal',
+          },
+          body: JSON.stringify({chiave, valore}),
+        });
+        if(!res.ok && res.status!==200 && res.status!==201 && res.status!==204){
+          throw new Error(`${res.status}`);
+        }
+        S.settings[chiave]=valore;
         inp.classList.add('saved');
         setTimeout(()=>inp.classList.remove('saved'),2000);
         toast('Impostazione salvata');
       }catch(e){
-        // Prova con PATCH
-        try{
-          await db('PATCH',T('settings'),{flt:`chiave=eq.${chiave}`,body:{valore:inp.value.trim()}});
-          S.settings[chiave]=inp.value.trim();
-          inp.classList.add('saved');
-          setTimeout(()=>inp.classList.remove('saved'),2000);
-          toast('Impostazione salvata');
-        }catch(e2){ toast('Errore salvataggio','err'); }
+        toast('Errore salvataggio: '+e.message,'err');
       }
     });
   });
