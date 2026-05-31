@@ -947,7 +947,8 @@ function openCercaOpenapi(){
         fatturato_max,
         comune:$('op-comune').value.trim()||null,
         provincia:$('op-prov').value.trim().toUpperCase()||null,
-        openapi_key:S.settings['openapi_key']
+        openapi_key:S.settings['openapi_key'],
+        use_sandbox: S.settings['openapi_sandbox'] !== '0',  // default sandbox
       });
       if(data.ok){
         toast(`Trovate ${data.trovati} aziende: ${data.nuovi} nuove, ${data.duplicati} già presenti`);
@@ -1285,6 +1286,7 @@ function renderSettings(pb){
     <div class="card" style="margin-top:16px;">
       <div class="card-title">Chiavi API</div>
       ${renderSettingRow('openapi_key','Openapi.it Token','Token prod/sandbox per la ricerca automatica di aziende per ATECO e fatturato')}
+      ${renderSettingRow('openapi_sandbox','Modalità Sandbox Openapi','1 = sandbox (gratis, dati fittizi) · 0 = produzione (dati reali, richiede attivazione API)','text')}
       ${renderSettingRow('linkd_key','LinkdAPI Key','Ricerca contatti LinkedIn per azienda e arricchimento profili (linkdapi.com)')}
       ${renderSettingRow('hunter_key','Hunter.io API Key','Ricerca automatica email dei contatti tramite dominio aziendale')}
       ${renderSettingRow('resend_key','Resend API Key','Invio email transazionali (piano free: 3.000/mese, 100/giorno)')}
