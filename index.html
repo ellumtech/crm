@@ -878,10 +878,14 @@ async function delAzienda(azId){
 function openCercaOpenapi(){
   $('modal-title').textContent='Cerca Aziende su Openapi.it';
   $('modal-box').className='modal';
-  const hasKey=!!S.settings['openapi_key'];
+  const isSbx = S.settings['openapi_sandbox'] !== '0';
+  const hasKey = isSbx ? !!S.settings['openapi_token_sandbox'] : !!S.settings['openapi_token_prod'];
+  const ambienteLabel = isSbx
+    ? '<span style="background:var(--ew-verde-xlight);color:var(--ew-verde-dark);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">🧪 SANDBOX</span>'
+    : '<span style="background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">🚀 PRODUZIONE</span>';
   $('modal-body').innerHTML=`
-    ${!hasKey?'<div class="warn-box">⚠️ Configura la chiave Openapi.it nelle Impostazioni prima di procedere.</div>':''}
-    <div class="info-box">Cerca aziende italiane per codice ATECO e range di fatturato. I risultati vengono salvati automaticamente evitando duplicati per Partita IVA.</div>
+    ${!hasKey?`<div class="warn-box">⚠️ Configura il token ${isSbx?'sandbox':'produzione'} nelle Impostazioni prima di procedere.</div>`:''}
+    <div class="info-box">Cerca aziende italiane per codice ATECO e range di fatturato. ${ambienteLabel} I risultati vengono salvati automaticamente evitando duplicati per Partita IVA.</div>
     <div class="frow full"><div class="fgroup"><label>Codice ATECO *</label><input id="op-ateco" class="fi" placeholder="es. 62.01.00" style="font-family:'DM Mono',monospace;"/></div></div>
     <div class="frow">
       <div class="fgroup">
@@ -941,14 +945,18 @@ function openCercaOpenapi(){
     }
     const btn=$('op-avvia'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Ricerca in corso...';
     try{
+      const isSandbox = S.settings['openapi_sandbox'] !== '0';
+      const tokenKey = isSandbox ? 'openapi_token_sandbox' : 'openapi_token_prod';
+      const openapiToken = S.settings[tokenKey];
+      if(!openapiToken){ toast(`Configura il token ${isSandbox?'sandbox':'produzione'} nelle Impostazioni`,'warn'); btn.disabled=false; btn.innerHTML='🔍 Avvia ricerca'; return; }
       const data=await callFn('crm-cerca-prospect',{
         codice_ateco:ateco,
         fatturato_min,
         fatturato_max,
         comune:$('op-comune').value.trim()||null,
         provincia:$('op-prov').value.trim().toUpperCase()||null,
-        openapi_key:S.settings['openapi_key'],
-        use_sandbox: S.settings['openapi_sandbox'] !== '0',  // default sandbox
+        openapi_key: openapiToken,
+        use_sandbox: isSandbox,
       });
       if(data.ok){
         toast(`Trovate ${data.trovati} aziende: ${data.nuovi} nuove, ${data.duplicati} già presenti`);
@@ -1285,8 +1293,28 @@ function renderSettings(pb){
     </div>
     <div class="card" style="margin-top:16px;">
       <div class="card-title">Chiavi API</div>
-      ${renderSettingRow('openapi_key','Openapi.it Token','Token prod/sandbox per la ricerca automatica di aziende per ATECO e fatturato')}
-      ${renderSettingRow('openapi_sandbox','Modalità Sandbox Openapi','1 = sandbox (gratis, dati fittizi) · 0 = produzione (dati reali, richiede attivazione API)','text')}
+      ${renderSettingRow('openapi_token_sandbox','Openapi.it Token Sandbox','Token dalla console → Authentication → Sandbox Token List')}
+      ${renderSettingRow('openapi_token_prod','Openapi.it Token Produzione','Token dalla console → Authentication → Production Token List (richiede attivazione API)')}
+      <div class="setting-row">
+        <div>
+          <div class="setting-lbl">Modalità Openapi</div>
+          <div class="setting-desc">Attivo = Sandbox (dati fittizi, gratuito) &nbsp;·&nbsp; Disattivo = Produzione (dati reali)</div>
+        </div>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;">
+          <span id="sandbox-lbl" style="font-size:12px;font-weight:700;color:${S.settings['openapi_sandbox']==='0'?'var(--ew-verde-dark)':'var(--ew-grigio-mid)'};">${S.settings['openapi_sandbox']==='0'?'PRODUZIONE':'SANDBOX'}</span>
+          <div id="sandbox-toggle" onclick="toggleSandbox()" style="
+            position:relative;width:46px;height:26px;border-radius:13px;
+            background:${S.settings['openapi_sandbox']==='0'?'var(--ew-grigio-light)':'var(--ew-verde)'};
+            transition:background .25s;cursor:pointer;flex-shrink:0;">
+            <div style="
+              position:absolute;top:3px;
+              left:${S.settings['openapi_sandbox']==='0'?'3px':'23px'};
+              width:20px;height:20px;border-radius:50%;background:#fff;
+              box-shadow:0 1px 4px rgba(0,0,0,.18);transition:left .25s;">
+            </div>
+          </div>
+        </label>
+      </div>
       ${renderSettingRow('linkd_key','LinkdAPI Key','Ricerca contatti LinkedIn per azienda e arricchimento profili (linkdapi.com)')}
       ${renderSettingRow('hunter_key','Hunter.io API Key','Ricerca automatica email dei contatti tramite dominio aziendale')}
       ${renderSettingRow('resend_key','Resend API Key','Invio email transazionali (piano free: 3.000/mese, 100/giorno)')}
@@ -1583,6 +1611,26 @@ async function arricchisciLinkedIn(ctId, azId){
     btn.disabled=false; btn.innerHTML='🔗 Recupera dati';
   });
   openModal();
+}
+// ── Toggle Sandbox Openapi ──────────────────────────
+async function toggleSandbox(){
+  const isSandbox = S.settings['openapi_sandbox'] !== '0';
+  const nuovoValore = isSandbox ? '0' : '1';
+  try {
+    await fetch(`${CFG.URL}/rest/v1/${T('settings')}`, {
+      method:'POST',
+      headers:{
+        'apikey':CFG.KEY,'Authorization':`Bearer ${S.token||CFG.KEY}`,
+        'Content-Type':'application/json',
+        'Prefer':'resolution=merge-duplicates,return=minimal',
+      },
+      body: JSON.stringify({chiave:'openapi_sandbox', valore:nuovoValore}),
+    });
+    S.settings['openapi_sandbox'] = nuovoValore;
+    toast(nuovoValore==='1' ? '🧪 Modalità Sandbox attivata' : '🚀 Modalità Produzione attivata');
+    // Ri-renderizza le impostazioni per aggiornare il toggle
+    renderSettings($('pb'));
+  } catch(e){ toast('Errore: '+e.message,'err'); }
 }
 </script>
 </body>
