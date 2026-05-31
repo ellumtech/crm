@@ -229,7 +229,7 @@ tbody td { padding:10px 14px; font-size:13px; color:var(--txt-mid); vertical-ali
 .setting-row:last-child { border-bottom:none; }
 .setting-lbl { font-size:13px; font-weight:700; color:var(--txt); }
 .setting-desc { font-size:12px; color:var(--txt-soft); margin-top:2px; }
-.key-input { font-family:'DM Mono',monospace; font-size:12px; width:240px; background:var(--ew-grigio-ghost); padding:7px 10px; border:1.5px solid var(--ew-grigio-xlight); border-radius:var(--rsm); }
+.key-input { font-family:'DM Mono',monospace; font-size:12px; width:260px; min-width:260px; background:var(--ew-grigio-ghost); padding:7px 10px; border:1.5px solid var(--ew-grigio-xlight); border-radius:var(--rsm); }
 .key-input.saved { border-color:var(--ew-verde); background:var(--ew-verde-ghost); }
 
 /* ── Info / Warn boxes ── */
@@ -261,10 +261,10 @@ tbody td { padding:10px 14px; font-size:13px; color:var(--txt-mid); vertical-ali
 <div id="lp">
   <div class="lcard">
     <div class="llogo">
-      <svg height="36" viewBox="0 0 260 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <text x="0" y="46" font-family="DM Sans,sans-serif" font-weight="800" font-size="48" fill="#524F4F">e</text>
-        <text x="36" y="46" font-family="DM Sans,sans-serif" font-weight="800" font-size="48" fill="#94C11F">-wenco</text>
-        <text x="0" y="58" font-family="DM Sans,sans-serif" font-weight="400" font-size="11" letter-spacing="3" fill="#857F7F">CRM</text>
+      <svg height="36" viewBox="0 0 320 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <text x="0" y="44" font-family="DM Sans,sans-serif" font-weight="800" font-size="48" fill="#524F4F">e</text>
+        <text x="36" y="44" font-family="DM Sans,sans-serif" font-weight="800" font-size="48" fill="#94C11F">-wenco</text>
+        <text x="210" y="44" font-family="DM Sans,sans-serif" font-weight="300" font-size="36" fill="#C4BFBF">CRM</text>
       </svg>
     </div>
     <div class="lsub">Accesso riservato al personale autorizzato</div>
@@ -280,14 +280,15 @@ tbody td { padding:10px 14px; font-size:13px; color:var(--txt-mid); vertical-ali
   <div id="topbar">
     <div id="tb-top">
       <div id="tb-logo">
-        <svg height="26" viewBox="0 0 260 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <text x="0" y="46" font-family="DM Sans,sans-serif" font-weight="800" font-size="48" fill="#524F4F">e</text>
-          <text x="36" y="46" font-family="DM Sans,sans-serif" font-weight="800" font-size="48" fill="#94C11F">-wenco</text>
-          <text x="168" y="46" font-family="DM Sans,sans-serif" font-weight="400" font-size="20" letter-spacing="3" fill="#857F7F">CRM</text>
+        <svg height="26" viewBox="0 0 320 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="44" font-family="DM Sans,sans-serif" font-weight="800" font-size="48" fill="#524F4F">e</text>
+          <text x="36" y="44" font-family="DM Sans,sans-serif" font-weight="800" font-size="48" fill="#94C11F">-wenco</text>
+          <text x="210" y="44" font-family="DM Sans,sans-serif" font-weight="300" font-size="36" fill="#C4BFBF">CRM</text>
         </svg>
       </div>
       <div id="tb-right">
         <span id="tb-date"></span>
+        <span id="tb-env"></span>
         <span id="tb-user"></span>
         <span id="tb-role"></span>
         <button id="lout">Esci</button>
@@ -429,6 +430,7 @@ async function initApp(){
   if(S.ruolo==='admin') { const tu=$('tnb-utenti'); if(tu) tu.style.display=''; }
   $('lout').addEventListener('click', doLogout);
   await loadAll();
+  updateEnvBadge();
   goPage('aziende');
   updateBadges();
 }
@@ -1357,7 +1359,7 @@ function renderSettingRow(chiave,label,desc,type='text'){
   const val=esc(S.settings[chiave]||'');
   return `<div class="setting-row">
     <div><div class="setting-lbl">${esc(label)}</div><div class="setting-desc">${esc(desc)}</div></div>
-    <input type="${type}" class="key-input ${val?'saved':''}" data-key="${chiave}" value="${val}" placeholder="Inserisci..."/>
+    <input type="${type}" class="key-input ${val?'saved':''}" data-key="${chiave}" value="${val}" placeholder="Inserisci..." style="width:260px;min-width:260px;"/>
   </div>`;
 }
 
@@ -1612,7 +1614,14 @@ async function arricchisciLinkedIn(ctId, azId){
   });
   openModal();
 }
-// ── Toggle Sandbox Openapi ──────────────────────────
+function updateEnvBadge(){
+  const isSbx = S.settings['openapi_sandbox'] !== '0';
+  const el = $('tb-env');
+  if(!el) return;
+  el.innerHTML = isSbx
+    ? `<span style="background:#FEF3E2;color:#D4770A;border:1px solid #f5c28a;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;">🧪 Sandbox</span>`
+    : `<span style="background:var(--ew-verde-xlight);color:var(--ew-verde-dark);border:1px solid var(--ew-verde-light);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;">🚀 Produzione</span>`;
+}
 async function toggleSandbox(){
   const isSandbox = S.settings['openapi_sandbox'] !== '0';
   const nuovoValore = isSandbox ? '0' : '1';
@@ -1627,6 +1636,7 @@ async function toggleSandbox(){
       body: JSON.stringify({chiave:'openapi_sandbox', valore:nuovoValore}),
     });
     S.settings['openapi_sandbox'] = nuovoValore;
+    updateEnvBadge();
     toast(nuovoValore==='1' ? '🧪 Modalità Sandbox attivata' : '🚀 Modalità Produzione attivata');
     // Ri-renderizza le impostazioni per aggiornare il toggle
     renderSettings($('pb'));
