@@ -634,6 +634,7 @@ function openScheda(azId){
   $('modal-foot').innerHTML=`${S.ruolo==='admin'?`
     <button class="btn btn-secondary" id="btn-nuova-op">+ Operazione</button>
     <button class="btn btn-secondary" id="btn-nuovo-ct">+ Contatto</button>
+    <button class="btn btn-sm" style="background:#0A66C2;color:#fff;border-radius:var(--rsm);padding:8px 14px;font-weight:700;" id="btn-linkedin-cerca">🔗 Cerca su LinkedIn</button>
     <button class="btn btn-primary" id="btn-nuova-az-azione">+ Prossima Azione</button>`:''}
     <button class="btn btn-ghost" onclick="closeModal()">Chiudi</button>`;
 
@@ -679,6 +680,7 @@ function openScheda(azId){
             <button class="btn btn-secondary btn-sm" onclick="openEditContatto('${ct.id}','${azId}')">✏️</button>
             <button class="btn btn-danger btn-sm" onclick="delContatto('${ct.id}','${azId}')">🗑</button>
             ${!ct.email?`<button class="btn btn-sm" style="background:#E8500A;color:#fff;" onclick="cercaEmailHunter('${ct.id}','${azId}')">Hunter</button>`:''}
+            <button class="btn btn-sm" style="background:#0A66C2;color:#fff;" title="Arricchisci da LinkedIn" onclick="arricchisciLinkedIn('${ct.id}','${azId}')">🔗</button>
           `:''}
         </div>`).join('')}`;
     } else if(tabId==='azioni'){
@@ -749,6 +751,7 @@ function openScheda(azId){
     if($('btn-nuova-op')) $('btn-nuova-op').addEventListener('click',()=>openNuovaOperazione(azId));
     if($('btn-nuovo-ct')) $('btn-nuovo-ct').addEventListener('click',()=>openAddContatto(azId));
     if($('btn-nuova-az-azione')) $('btn-nuova-az-azione').addEventListener('click',()=>openNuovaAzione(azId));
+    if($('btn-linkedin-cerca')) $('btn-linkedin-cerca').addEventListener('click',()=>openLinkedInCercaContatti(azId));
     if($('btn-edit-az')) $('btn-edit-az').addEventListener('click',()=>{ closeModal(); openEditAzienda(azId); });
     if($('btn-del-az')) $('btn-del-az').addEventListener('click',()=>delAzienda(azId));
     if($('sel-stato-az')) $('sel-stato-az').addEventListener('change',async e=>{
@@ -1281,7 +1284,8 @@ function renderSettings(pb){
     </div>
     <div class="card" style="margin-top:16px;">
       <div class="card-title">Chiavi API</div>
-      ${renderSettingRow('openapi_key','Openapi.it API Key','Usata per la ricerca automatica di aziende per ATECO e fatturato')}
+      ${renderSettingRow('openapi_key','Openapi.it Token','Token prod/sandbox per la ricerca automatica di aziende per ATECO e fatturato')}
+      ${renderSettingRow('linkd_key','LinkdAPI Key','Ricerca contatti LinkedIn per azienda e arricchimento profili (linkdapi.com)')}
       ${renderSettingRow('hunter_key','Hunter.io API Key','Ricerca automatica email dei contatti tramite dominio aziendale')}
       ${renderSettingRow('resend_key','Resend API Key','Invio email transazionali (piano free: 3.000/mese, 100/giorno)')}
       ${renderSettingRow('email_mittente','Email mittente','Es. crm@e-wenco.it — deve essere un dominio verificato su Resend')}
@@ -1407,6 +1411,176 @@ async function delUser(uid){
     S.profili=S.profili.filter(p=>p.id!==uid);
     toast('Utente rimosso'); renderUtenti($('pb'));
   }catch(e){ toast('Errore: '+e.message,'err'); }
+}
+// ═══════════════════════════════════════════════════════
+// ── LINKEDIN ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+
+function openLinkedInCercaContatti(azId){
+  if(!S.settings['linkd_key']){ toast('Configura la LinkdAPI Key nelle Impostazioni','warn'); return; }
+  const az=S.aziende.find(x=>x.id===azId); if(!az) return;
+  $('modal-title').textContent='Cerca Contatti su LinkedIn';
+  $('modal-box').className='modal modal-lg';
+  $('modal-body').innerHTML=`
+    <div class="info-box">Cerca dipendenti di <strong>${esc(az.ragione_sociale)}</strong> su LinkedIn. I risultati potranno essere importati come contatti.</div>
+    <div class="frow full"><div class="fgroup">
+      <label>URL LinkedIn Azienda (opzionale — migliora la precisione)</label>
+      <input id="li-url" class="fi" placeholder="https://linkedin.com/company/nome-azienda" value="${esc(az.linkedin_url||'')}"/>
+    </div></div>
+    <div class="frow full"><div class="fgroup">
+      <label>Filtra per ruolo (opzionale)</label>
+      <input id="li-ruolo" class="fi" placeholder="es. IT Manager, CTO, Responsabile acquisti..."/>
+    </div></div>
+    <div class="frow full"><div class="fgroup">
+      <label>Numero massimo risultati</label>
+      <select id="li-limit" class="fse">
+        <option value="5">5</option><option value="10" selected>10</option><option value="20">20</option>
+      </select>
+    </div></div>
+    <div id="li-results" style="margin-top:16px;"></div>`;
+  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="li-cerca-btn">🔍 Cerca</button>';
+
+  $('li-cerca-btn').addEventListener('click',async()=>{
+    const btn=$('li-cerca-btn'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Ricerca...';
+    const res=$('li-results');
+    try{
+      const data=await callFn('crm-linkedin',{
+        action:'cerca_contatti',
+        linkd_key:S.settings['linkd_key'],
+        azienda_nome:az.ragione_sociale,
+        azienda_linkedin_url:$('li-url').value.trim()||null,
+        ruolo_keyword:$('li-ruolo').value.trim()||null,
+        limit:$('li-limit').value,
+      });
+      if(!data.ok){ res.innerHTML=`<div class="warn-box">⚠️ ${esc(data.error)}</div>`; return; }
+      if(!data.contatti?.length){ res.innerHTML='<div class="empty"><div class="ei">🔍</div><p>Nessun contatto trovato</p></div>'; return; }
+
+      // Mostra risultati con checkbox per importare
+      res.innerHTML=`
+        <div style="font-size:12px;color:var(--txt-soft);margin-bottom:10px;">Trovati ${data.trovati} contatti — seleziona quelli da importare:</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <button class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.li-chk').forEach(c=>c.checked=true)">Seleziona tutti</button>
+          <button class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.li-chk').forEach(c=>c.checked=false)">Deseleziona</button>
+        </div>
+        ${data.contatti.map((ct,i)=>`
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--ew-grigio-ghost);">
+            <input type="checkbox" class="li-chk" data-idx="${i}" checked style="margin-top:4px;width:16px;height:16px;accent-color:var(--ew-verde);"/>
+            <div style="flex:1;">
+              <div style="font-weight:700;">${esc(ct.nome)} ${esc(ct.cognome||'')}</div>
+              ${ct.ruolo_aziendale?`<div style="font-size:12px;color:var(--txt-soft);">${esc(ct.ruolo_aziendale)}</div>`:''}
+              ${ct.location?`<div style="font-size:11px;color:var(--txt-faint);">📍 ${esc(ct.location)}</div>`:''}
+              ${ct.linkedin_personale?`<div style="font-size:11px;"><a href="${esc(ct.linkedin_personale)}" target="_blank" style="color:var(--blue);">LinkedIn ↗</a></div>`:''}
+            </div>
+          </div>`).join('')}
+        <div style="margin-top:14px;"><button class="btn btn-primary" id="li-import-btn">⬇️ Importa selezionati</button></div>`;
+
+      // Importa selezionati
+      $('li-import-btn').addEventListener('click',async()=>{
+        const ibtn=$('li-import-btn'); ibtn.disabled=true; ibtn.textContent='Importo...';
+        const selIdx=[...document.querySelectorAll('.li-chk:checked')].map(c=>parseInt(c.dataset.idx));
+        let importati=0, saltati=0;
+        for(const idx of selIdx){
+          const ct=data.contatti[idx];
+          if(!ct.nome){ saltati++; continue; }
+          // Controlla se esiste già (per linkedin_url)
+          if(ct.linkedin_personale){
+            const esiste=S.contatti.find(c=>c.azienda_id===azId&&c.linkedin_personale===ct.linkedin_personale);
+            if(esiste){ saltati++; continue; }
+          }
+          try{
+            const body={
+              azienda_id:azId,
+              nome:ct.nome, cognome:ct.cognome||null,
+              ruolo_aziendale:ct.ruolo_aziendale||null,
+              linkedin_personale:ct.linkedin_personale||null,
+              note:`Importato da LinkedIn${ct.location?' · '+ct.location:''}`,
+              created_at:new Date().toISOString(), updated_at:new Date().toISOString(),
+            };
+            const r=await db('POST',T('contatti'),{body});
+            if(r&&r[0]){ S.contatti.push(r[0]); importati++; }
+          }catch(e){ saltati++; }
+        }
+        toast(`Importati ${importati} contatti${saltati?' · '+saltati+' saltati':''}`);
+        closeModal(); openScheda(azId);
+      });
+    }catch(e){ res.innerHTML=`<div class="warn-box">⚠️ ${esc(e.message)}</div>`; }
+    btn.disabled=false; btn.innerHTML='🔍 Cerca';
+  });
+  openModal();
+}
+
+async function arricchisciLinkedIn(ctId, azId){
+  if(!S.settings['linkd_key']){ toast('Configura la LinkdAPI Key nelle Impostazioni','warn'); return; }
+  const ct=S.contatti.find(c=>c.id===ctId); if(!ct) return;
+  const az=S.aziende.find(a=>a.id===azId);
+
+  // Se il contatto ha già uno username LinkedIn estrailo dall'URL
+  let username='';
+  if(ct.linkedin_personale){
+    username=ct.linkedin_personale.replace(/\/$/, '').split('/').pop()||'';
+  }
+
+  $('modal-title').textContent='Arricchisci da LinkedIn';
+  $('modal-box').className='modal';
+  $('modal-body').innerHTML=`
+    <div class="info-box">Recupera dati aggiornati dal profilo LinkedIn di <strong>${esc(ct.nome)} ${esc(ct.cognome||'')}</strong>.</div>
+    <div class="frow full"><div class="fgroup">
+      <label>Username LinkedIn</label>
+      <input id="li-un" class="fi" placeholder="es. mario-rossi-123 (dalla URL linkedin.com/in/...)" value="${esc(username)}"/>
+      <span style="font-size:11px;color:var(--txt-faint);">Lascia vuoto per cercarlo automaticamente per nome + azienda</span>
+    </div></div>
+    <div id="li-enrich-result" style="margin-top:16px;"></div>`;
+  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="li-enrich-btn">🔗 Recupera dati</button>';
+
+  $('li-enrich-btn').addEventListener('click',async()=>{
+    const btn=$('li-enrich-btn'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
+    const res=$('li-enrich-result');
+    try{
+      const data=await callFn('crm-linkedin',{
+        action:'arricchisci',
+        linkd_key:S.settings['linkd_key'],
+        linkedin_username:$('li-un').value.trim()||null,
+        nome:ct.nome, cognome:ct.cognome||'',
+        azienda_nome:az?.ragione_sociale||'',
+      });
+      if(!data.ok){ res.innerHTML=`<div class="warn-box">⚠️ ${esc(data.error)}</div>`; return; }
+
+      const a=data.arricchimento;
+      res.innerHTML=`
+        <div class="card-title" style="margin-bottom:12px;">Dati trovati per <strong>${esc(data.username)}</strong></div>
+        ${Object.entries(a).map(([k,v])=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--ew-grigio-ghost);font-size:13px;">
+            <span style="color:var(--txt-soft);font-weight:600;min-width:140px;">${esc(k.replace(/_/g,' '))}</span>
+            <span style="color:var(--txt);flex:1;text-align:right;">${esc(String(v).slice(0,80))}</span>
+          </div>`).join('')}
+        ${data.raw_experience?.length?`
+          <div style="margin-top:12px;font-size:12px;color:var(--txt-soft);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Esperienze recenti</div>
+          ${data.raw_experience.map(e=>`<div style="padding:6px 0;font-size:13px;border-bottom:1px solid var(--ew-grigio-ghost);"><strong>${esc(e.title||'')}</strong>${e.company?' @ '+esc(e.company):''}<br><span style="font-size:11px;color:var(--txt-faint);">${esc(e.dateRange||e.duration||'')}</span></div>`).join('')}`:''}
+        <div style="margin-top:16px;"><button class="btn btn-primary" id="li-save-enrich">💾 Salva nel contatto</button></div>`;
+
+      $('li-save-enrich').addEventListener('click',async()=>{
+        // Costruisce l'oggetto update solo con i campi mappabili in crm_contatti
+        const update={};
+        if(a.nome && !ct.nome)      update.nome=a.nome;
+        if(a.cognome && !ct.cognome) update.cognome=a.cognome;
+        if(a.ruolo_aziendale)        update.ruolo_aziendale=a.ruolo_aziendale;
+        if(a.email && !ct.email)     update.email=a.email;
+        if(a.telefono_diretto && !ct.telefono_diretto) update.telefono_diretto=a.telefono_diretto;
+        if(a.linkedin_personale)     update.linkedin_personale=a.linkedin_personale;
+        if(a.note_linkedin)          update.note=(ct.note?ct.note+'\n':'')+a.note_linkedin;
+        update.updated_at=new Date().toISOString();
+        try{
+          await db('PATCH',T('contatti'),{flt:`id=eq.${ctId}`,body:update});
+          const i=S.contatti.findIndex(c=>c.id===ctId);
+          if(i>=0) S.contatti[i]={...S.contatti[i],...update};
+          toast('Contatto arricchito ✓');
+          closeModal(); openScheda(azId);
+        }catch(e){ toast('Errore salvataggio: '+e.message,'err'); }
+      });
+    }catch(e){ res.innerHTML=`<div class="warn-box">⚠️ ${esc(e.message)}</div>`; }
+    btn.disabled=false; btn.innerHTML='🔗 Recupera dati';
+  });
+  openModal();
 }
 </script>
 </body>
