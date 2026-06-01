@@ -1297,7 +1297,7 @@ function renderSettings(pb){
     <div class="card" style="margin-top:16px;">
       <div class="card-title">Chiavi API</div>
       ${renderSettingRow('openapi_token_sandbox','Openapi.it Token Sandbox','Token dalla console → Authentication → Sandbox Token List')}
-      ${renderSettingRow('openapi_token_prod','Openapi.it Token Produzione','Token dalla console → Authentication → Production Token List (richiede attivazione API)')}
+      ${renderSettingRow('openapi_token_prod','Openapi.it Token Produzione','Token dalla console → Authentication → Production Token List')}
       <div class="setting-row">
         <div>
           <div class="setting-lbl">Modalità Openapi</div>
@@ -1712,8 +1712,8 @@ function renderAdminLegende(){
   const ac=$('admin-content');
   ac.innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-      ${renderLegendaCard('tipi_azione','Tipi di Prossima Azione','Le azioni disponibili nel selettore "Tipo Azione" delle prossime azioni')}
       ${renderLegendaCard('tipi_operazione','Tipi di Operazione','Le operazioni disponibili nel selettore "Tipo Operazione" della timeline')}
+      ${renderLegendaCard('tipi_azione','Tipi di Prossima Azione','Le azioni disponibili nel selettore "Tipo Azione" delle prossime azioni')}
     </div>`;
 
   // Attach events
