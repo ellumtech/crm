@@ -1407,7 +1407,7 @@ function openNewUser(){
     try{
       const data=await callFn('crm-manage-user',{action:'create',email,password:pwd,nome,cognome:cog,ruolo});
       if(!data.ok){ toast('Errore: '+data.error,'err'); return; }
-      await loadAll(); toast('Utente creato'); closeModal(); renderUtenti($('pb'));
+      await loadAll(); toast('Utente creato'); closeModal(); renderAdmin($('pb'));
     }catch(e){ toast('Errore: '+e.message,'err'); }
   });
   openModal();
@@ -1430,7 +1430,7 @@ function openEditUser(uid){
     try{
       const data=await callFn('crm-manage-user',payload);
       if(!data.ok){ toast('Errore: '+data.error,'err'); return; }
-      await loadAll(); toast('Utente aggiornato'); closeModal(); renderUtenti($('pb'));
+      await loadAll(); toast('Utente aggiornato'); closeModal(); renderAdmin($('pb'));
     }catch(e){ toast('Errore: '+e.message,'err'); }
   });
   openModal();
@@ -1442,7 +1442,7 @@ async function delUser(uid){
     const data=await callFn('crm-manage-user',{action:'delete_profile',user_id:uid});
     if(!data.ok){ toast('Errore: '+data.error,'err'); return; }
     S.profili=S.profili.filter(p=>p.id!==uid);
-    toast('Utente rimosso'); renderUtenti($('pb'));
+    toast('Utente rimosso'); renderAdmin($('pb'));
   }catch(e){ toast('Errore: '+e.message,'err'); }
 }
 // ═══════════════════════════════════════════════════════
