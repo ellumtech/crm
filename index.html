@@ -298,7 +298,7 @@ tbody td { padding:10px 14px; font-size:13px; color:var(--txt-mid); vertical-ali
       <button class="tnb active" data-page="aziende">Aziende</button>
       <button class="tnb" data-page="azioni">Prossime Azioni <span class="badge" id="badge-azioni" style="display:none"></span></button>
       <button class="tnb" data-page="settings">Impostazioni</button>
-      <button class="tnb" data-page="utenti" id="tnb-utenti" style="display:none">Utenti</button>
+      <button class="tnb" data-page="admin" id="tnb-admin" style="display:none">Admin</button>
     </nav>
   </div>
   <main id="main"><div id="pb"></div></main>
@@ -427,7 +427,7 @@ async function initApp(){
   $('tb-user').textContent = `${S.user.nome||''} ${S.user.cognome||''}`.trim()||S.user.email;
   $('tb-role').textContent = S.ruolo||'viewer';
   document.querySelectorAll('.tnb').forEach(b => b.addEventListener('click',()=>goPage(b.dataset.page)));
-  if(S.ruolo==='admin') { const tu=$('tnb-utenti'); if(tu) tu.style.display=''; }
+  if(S.ruolo==='admin') { const ta=$('tnb-admin'); if(ta) ta.style.display=''; }
   $('lout').addEventListener('click', doLogout);
   await loadAll();
   updateEnvBadge();
@@ -466,6 +466,7 @@ function goPage(pg){
   else if(pg==='azioni') renderAzioni(pb);
   else if(pg==='settings') renderSettings(pb);
   else if(pg==='utenti') renderUtenti(pb);
+  else if(pg==='admin') renderAdmin(pb);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -883,11 +884,11 @@ function openCercaOpenapi(){
   const isSbx = S.settings['openapi_sandbox'] !== '0';
   const hasKey = isSbx ? !!S.settings['openapi_token_sandbox'] : !!S.settings['openapi_token_prod'];
   const ambienteLabel = isSbx
-    ? '<span style="background:var(--ew-verde-xlight);color:var(--ew-verde-dark);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">🧪 SANDBOX</span>'
-    : '<span style="background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">🚀 PRODUZIONE</span>';
+    ? '<span style="background:var(--ew-verde-xlight);color:var(--ew-verde-dark);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:800;letter-spacing:.4px;">SANDBOX</span>'
+    : '<span style="background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:800;letter-spacing:.4px;">PRODUZIONE</span>';
   $('modal-body').innerHTML=`
     ${!hasKey?`<div class="warn-box">⚠️ Configura il token ${isSbx?'sandbox':'produzione'} nelle Impostazioni prima di procedere.</div>`:''}
-    <div class="info-box">Cerca aziende italiane per codice ATECO e range di fatturato. ${ambienteLabel} I risultati vengono salvati automaticamente evitando duplicati per Partita IVA.</div>
+    <div class="info-box">Cerca aziende italiane per codice ATECO e range di fatturato. I risultati vengono salvati automaticamente evitando duplicati per Partita IVA.<br><span style="margin-top:4px;display:inline-block;">Ambiente attivo: ${ambienteLabel}</span></div>
     <div class="frow full"><div class="fgroup"><label>Codice ATECO *</label><input id="op-ateco" class="fi" placeholder="es. 62.01.00" style="font-family:'DM Mono',monospace;"/></div></div>
     <div class="frow">
       <div class="fgroup">
@@ -984,7 +985,7 @@ function openNuovaOperazione(azId){
   $('modal-box').className='modal';
   $('modal-body').innerHTML=`
     <div class="frow full"><div class="fgroup"><label>Tipo Operazione *</label><select id="op-tipo" class="fse">
-      <option>Email inviata</option><option>Email ricevuta</option><option>Telefonata</option><option>Incontro</option><option>Nota commerciale</option><option>Preventivo inviato</option><option>Offerta accettata</option>
+      ${getLegenda('tipi_operazione').map(t=>`<option>${esc(t)}</option>`).join('')}
     </select></div></div>
     ${contatti.length?`<div class="frow full"><div class="fgroup"><label>Contatto (opzionale)</label><select id="op-ct" class="fse"><option value="">— Nessun contatto specifico —</option>${contatti.map(c=>`<option value="${c.id}">${esc(c.nome)} ${esc(c.cognome||'')}${c.ruolo_aziendale?' — '+esc(c.ruolo_aziendale):''}</option>`).join('')}</select></div></div>`:''}
     <div class="frow full"><div class="fgroup"><label>Data *</label><input type="datetime-local" id="op-data" class="fi" value="${new Date().toISOString().slice(0,16)}"/></div></div>
@@ -1129,7 +1130,7 @@ function openNuovaAzione(azId){
   $('modal-box').className='modal';
   $('modal-body').innerHTML=`
     <div class="frow full"><div class="fgroup"><label>Tipo Azione *</label><select id="az-tipo" class="fse">
-      <option>Ricontattare via email</option><option>Chiamata di follow-up</option><option>Inviare preventivo</option><option>Fissare incontro</option><option>Inviare materiale</option><option>Demo prodotto</option><option>Altro</option>
+      ${getLegenda('tipi_azione').map(t=>`<option>${esc(t)}</option>`).join('')}
     </select></div></div>
     <div class="frow"><div class="fgroup"><label>Data Scadenza *</label><input type="date" id="az-scad" class="fi" value="${new Date(Date.now()+7*86400000).toISOString().slice(0,10)}"/></div>
     <div class="fgroup"><label>Priorità</label><select id="az-prior" class="fse">
@@ -1241,7 +1242,7 @@ function openNuovaAzioneGlobale(){
   $('modal-body').innerHTML=`
     <div class="frow full"><div class="fgroup"><label>Azienda *</label><select id="azg-az" class="fse"><option value="">— Seleziona —</option>${S.aziende.map(a=>`<option value="${a.id}">${esc(a.ragione_sociale)}</option>`).join('')}</select></div></div>
     <div class="frow full"><div class="fgroup"><label>Tipo Azione *</label><select id="azg-tipo" class="fse">
-      <option>Ricontattare via email</option><option>Chiamata di follow-up</option><option>Inviare preventivo</option><option>Fissare incontro</option><option>Inviare materiale</option><option>Demo prodotto</option><option>Altro</option>
+      ${getLegenda('tipi_azione').map(t=>`<option>${esc(t)}</option>`).join('')}
     </select></div></div>
     <div class="frow"><div class="fgroup"><label>Data Scadenza *</label><input type="date" id="azg-scad" class="fi" value="${new Date(Date.now()+7*86400000).toISOString().slice(0,10)}"/></div>
     <div class="fgroup"><label>Priorità</label><select id="azg-prior" class="fse">
@@ -1641,6 +1642,135 @@ async function toggleSandbox(){
     // Ri-renderizza le impostazioni per aggiornare il toggle
     renderSettings($('pb'));
   } catch(e){ toast('Errore: '+e.message,'err'); }
+}
+// ═══════════════════════════════════════════════════════
+// ── ADMIN ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+function renderAdmin(pb, activeTab='utenti'){
+  pb.innerHTML=`<div class="page-wrap">
+    <div class="page-header">
+      <div><div class="page-title">Amministrazione</div><div class="page-subtitle">Gestione utenti e configurazione legende</div></div>
+    </div>
+    <div class="tabs" id="admin-tabs">
+      <div class="tab ${activeTab==='utenti'?'active':''}" data-atab="utenti">👥 Utenti</div>
+      <div class="tab ${activeTab==='legende'?'active':''}" data-atab="legende">🏷️ Legende</div>
+    </div>
+    <div id="admin-content"></div>
+  </div>`;
+
+  document.querySelectorAll('#admin-tabs .tab').forEach(t=>
+    t.addEventListener('click',()=>renderAdmin(pb, t.dataset.atab))
+  );
+
+  if(activeTab==='utenti') renderAdminUtenti();
+  else if(activeTab==='legende') renderAdminLegende();
+}
+
+function renderAdminUtenti(){
+  const ac=$('admin-content');
+  ac.innerHTML=`<div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="card-title" style="margin:0;">Utenti (${S.profili.length})</div>
+      <button class="btn btn-primary btn-sm" id="btn-new-user">+ Nuovo Utente</button>
+    </div>
+    ${S.profili.length===0?'<div class="empty"><div class="ei">👥</div><p>Nessun utente configurato</p></div>':
+    S.profili.map(u=>`<div class="user-row">
+      <div class="user-av">${(u.nome||'?')[0].toUpperCase()}</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;color:var(--txt);">${esc(u.nome||'')} ${esc(u.cognome||'')}</div>
+        <div style="font-size:12px;color:var(--txt-soft);">${esc(u.email)}</div>
+      </div>
+      <span style="background:${u.ruolo==='admin'?'var(--ew-verde-xlight)':'var(--ew-grigio-ghost)'};color:${u.ruolo==='admin'?'var(--ew-verde-dark)':'var(--txt-soft)'};padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;">${esc(u.ruolo)}</span>
+      <span style="font-size:11px;padding:3px 9px;border-radius:20px;background:${u.attivo?'#dcfce7':'var(--red-light)'};color:${u.attivo?'#16a34a':'var(--red)'};font-weight:700;">${u.attivo?'Attivo':'Disabilitato'}</span>
+      <button class="btn btn-secondary btn-sm" onclick="openEditUser('${u.id}')">✏️</button>
+      ${u.id!==S.user.id?`<button class="btn btn-danger btn-sm" onclick="delUser('${u.id}')">🗑</button>`:''}
+    </div>`).join('')}
+  </div>`;
+  $('btn-new-user').addEventListener('click', openNewUser);
+}
+
+// ── Legende ──────────────────────────────────────────
+const LEGENDE_DEFAULT = {
+  tipi_operazione: ['Email inviata','Email ricevuta','Telefonata','Incontro','Nota commerciale','Preventivo inviato','Offerta accettata'],
+  tipi_azione:     ['Ricontattare via email','Chiamata di follow-up','Inviare preventivo','Fissare incontro','Inviare materiale','Demo prodotto','Altro'],
+  stati_commerciali: ['prospect','in_trattativa','cliente','perso','non_interessato'],
+};
+
+function getLegenda(chiave){ return JSON.parse(S.settings['legenda_'+chiave]||'null') || LEGENDE_DEFAULT[chiave] || []; }
+
+async function saveLegenda(chiave, arr){
+  const valore=JSON.stringify(arr);
+  await fetch(`${CFG.URL}/rest/v1/${T('settings')}`,{
+    method:'POST',
+    headers:{'apikey':CFG.KEY,'Authorization':`Bearer ${S.token||CFG.KEY}`,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify({chiave:'legenda_'+chiave, valore}),
+  });
+  S.settings['legenda_'+chiave]=valore;
+}
+
+function renderAdminLegende(){
+  const ac=$('admin-content');
+  ac.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      ${renderLegendaCard('tipi_azione','Tipi di Prossima Azione','Le azioni disponibili nel selettore "Tipo Azione" delle prossime azioni')}
+      ${renderLegendaCard('tipi_operazione','Tipi di Operazione','Le operazioni disponibili nel selettore "Tipo Operazione" della timeline')}
+    </div>`;
+
+  // Attach events
+  ['tipi_azione','tipi_operazione'].forEach(chiave=>{
+    $(`btn-add-${chiave}`).addEventListener('click',()=>addLegendaItem(chiave));
+    $(`inp-add-${chiave}`).addEventListener('keydown',e=>{ if(e.key==='Enter') addLegendaItem(chiave); });
+  });
+}
+
+function renderLegendaCard(chiave, titolo, desc){
+  const items=getLegenda(chiave);
+  return `<div class="card">
+    <div class="card-title">${esc(titolo)}</div>
+    <div style="font-size:12px;color:var(--txt-soft);margin-bottom:14px;">${esc(desc)}</div>
+    <div id="legenda-list-${chiave}" style="margin-bottom:14px;">
+      ${items.map((item,i)=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--ew-grigio-ghost);" id="li-${chiave}-${i}">
+          <span style="flex:1;font-size:13px;color:var(--txt);">${esc(item)}</span>
+          <button class="btn btn-ghost btn-sm" style="color:var(--ew-grigio-mid);" onclick="moveLegendaItem('${chiave}',${i},-1)" ${i===0?'disabled':''}>↑</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--ew-grigio-mid);" onclick="moveLegendaItem('${chiave}',${i},1)" ${i===items.length-1?'disabled':''}>↓</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="delLegendaItem('${chiave}',${i})">✕</button>
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;">
+      <input id="inp-add-${chiave}" class="fi" style="flex:1;font-size:13px;" placeholder="Nuova voce..."/>
+      <button class="btn btn-primary btn-sm" id="btn-add-${chiave}">+ Aggiungi</button>
+    </div>
+  </div>`;
+}
+
+async function addLegendaItem(chiave){
+  const inp=$(`inp-add-${chiave}`);
+  const val=inp.value.trim(); if(!val) return;
+  const items=getLegenda(chiave);
+  if(items.includes(val)){ toast('Voce già presente','warn'); return; }
+  items.push(val);
+  await saveLegenda(chiave,items);
+  inp.value='';
+  toast('Voce aggiunta');
+  renderAdminLegende();
+}
+
+async function delLegendaItem(chiave,idx){
+  const items=getLegenda(chiave);
+  items.splice(idx,1);
+  await saveLegenda(chiave,items);
+  toast('Voce rimossa');
+  renderAdminLegende();
+}
+
+async function moveLegendaItem(chiave,idx,dir){
+  const items=getLegenda(chiave);
+  const newIdx=idx+dir;
+  if(newIdx<0||newIdx>=items.length) return;
+  [items[idx],items[newIdx]]=[items[newIdx],items[idx]];
+  await saveLegenda(chiave,items);
+  renderAdminLegende();
 }
 </script>
 </body>
