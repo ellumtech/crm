@@ -347,7 +347,7 @@ function fmtDT(d){ if(!d) return '—'; return new Date(d).toLocaleDateString('i
 function fmtEuro(v){ if(v===null||v===undefined) return '—'; return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v); }
 
 let _tid;
-function toast(msg, type='ok'){ const el=$('toast'); clearTimeout(_tid); el.textContent=msg; el.className=`show t${type}`; _tid=setTimeout(()=>el.className='', 3500); }
+function toast(msg, type='ok'){ const el=$('toast'); clearTimeout(_tid); el.textContent=msg; el.className=`show t${type}`; _tid=setTimeout(()=>el.className='', msg.length>60?6000:3500); }
 
 // ═══════════════════════════════════════════════════════
 // API HELPER
@@ -1000,29 +1000,18 @@ function openCercaOpenapi(){
         use_sandbox: isSandbox,
       });
       if(data.ok){
-        // Mostra info credito se disponibili
         const cr = data.credito || {};
-        let creditoHtml = '';
-        if(cr.richieste_oggi !== null || cr.credito_residuo !== null){
-          const parti = [];
-          if(cr.richieste_oggi !== null && cr.limite_giornaliero !== null)
-            parti.push(`Richieste oggi: <strong>${cr.richieste_oggi}</strong> / ${cr.limite_giornaliero} rimanenti`);
-          else if(cr.richieste_oggi !== null)
-            parti.push(`Richieste rimanenti oggi: <strong>${cr.richieste_oggi}</strong>`);
-          if(cr.credito_residuo !== null)
-            parti.push(`Credito residuo: <strong>${cr.credito_residuo}</strong>`);
-          creditoHtml = `<div style="margin-top:10px;font-size:12px;color:var(--txt-soft);display:flex;align-items:center;gap:6px;">
-            <span style="font-size:14px;">💳</span> ${parti.join(' &nbsp;·&nbsp; ')}
-          </div>`;
-        }
-        toast(`Trovate ${data.trovati} aziende: ${data.nuovi} nuove, ${data.duplicati} già presenti`);
-        if(creditoHtml){
-          const infoBox = $('modal-body')?.querySelector('.info-box');
-          if(infoBox) infoBox.insertAdjacentHTML('afterend', creditoHtml);
-        }
+        let creditoMsg = '';
+        if(cr.richieste_oggi !== null && cr.limite_giornaliero !== null)
+          creditoMsg = ` · 💳 ${cr.richieste_oggi}/${cr.limite_giornaliero} richieste rimanenti`;
+        else if(cr.richieste_oggi !== null)
+          creditoMsg = ` · 💳 ${cr.richieste_oggi} richieste rimanenti`;
+        else if(cr.credito_residuo !== null)
+          creditoMsg = ` · 💳 credito: ${cr.credito_residuo}`;
         await loadAll();
         closeModal();
         renderAziende($('pb'));
+        toast(`Trovate ${data.trovati}: ${data.nuovi} nuove, ${data.duplicati} già presenti${creditoMsg}`);
       } else {
         console.error('Errore crm-cerca-prospect:', data);
         toast('Errore: '+(data.error||'sconosciuto'),'err');
