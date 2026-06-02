@@ -888,7 +888,12 @@ function openCercaOpenapi(){
     : '<span style="background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:800;letter-spacing:.4px;">PRODUZIONE</span>';
   $('modal-body').innerHTML=`
     ${!hasKey?`<div class="warn-box">⚠️ Configura il token ${isSbx?'sandbox':'produzione'} nelle Impostazioni prima di procedere.</div>`:''}
-    <div class="info-box">Cerca aziende italiane per codice ATECO e range di fatturato. I risultati vengono salvati automaticamente evitando duplicati per Partita IVA.<br><span style="margin-top:4px;display:inline-block;">Ambiente attivo: ${ambienteLabel}</span></div>
+    <div class="info-box">Cerca aziende italiane per codice ATECO e range di fatturato. I risultati vengono salvati automaticamente evitando duplicati per Partita IVA.<br>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+        <span>Ambiente attivo: ${ambienteLabel}</span>
+        <span id="op-credito" style="font-size:12px;color:var(--txt-soft);">💳 caricamento credito...</span>
+      </div>
+    </div>
     <div class="frow full"><div class="fgroup"><label>Codice ATECO *</label><input id="op-ateco" class="fi" placeholder="es. 62.01.00" style="font-family:'DM Mono',monospace;"/></div></div>
     <div class="frow">
       <div class="fgroup">
@@ -910,6 +915,40 @@ function openCercaOpenapi(){
     </div>
     <div id="op-preview" style="font-size:12px;color:var(--ew-verde-dark);font-weight:600;margin:-6px 0 14px;padding:8px 12px;background:var(--ew-verde-ghost);border-radius:var(--rsm);display:none;"></div>
     <div class="frow"><div class="fgroup"><label>Comune (opzionale)</label><input id="op-comune" class="fi" placeholder="es. Milano"/></div><div class="fgroup"><label>Provincia (opzionale)</label><input id="op-prov" class="fi" maxlength="3" style="text-transform:uppercase;" placeholder="es. MI"/></div></div>`;
+
+  // Carica info credito dall'endpoint openapi.com
+  if(hasKey){
+    const tokenKey = isSbx ? 'openapi_token_sandbox' : 'openapi_token_prod';
+    const token = S.settings[tokenKey];
+    const creditUrl = isSbx
+      ? `https://test.company.openapi.com/credit`
+      : `https://company.openapi.com/credit`;
+    fetch(creditUrl, { headers:{ 'Authorization': `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        const el = $('op-credito');
+        if(!el) return;
+        // Struttura risposta credito openapi.com
+        const credito = data?.data?.credit ?? data?.credit ?? data?.wallet ?? null;
+        const rimanenti = data?.data?.remaining ?? data?.remaining ?? data?.free_calls ?? null;
+        if(credito !== null){
+          el.innerHTML = `💳 Credito: <strong>${credito}</strong>`;
+        } else if(rimanenti !== null){
+          el.innerHTML = `💳 Richieste rimanenti oggi: <strong>${rimanenti}</strong>`;
+        } else {
+          // Logga la struttura ricevuta per capire i nomi dei campi
+          console.log('Credit endpoint response:', JSON.stringify(data).slice(0,300));
+          el.innerHTML = `💳 <span style="color:var(--txt-faint);">info credito non disponibili</span>`;
+        }
+      })
+      .catch(() => {
+        const el = $('op-credito');
+        if(el) el.innerHTML = '';
+      });
+  } else {
+    const el = $('op-credito');
+    if(el) el.innerHTML = '';
+  }
 
   // Preview filtro fatturato in tempo reale
   const aggiornaPrev=()=>{
