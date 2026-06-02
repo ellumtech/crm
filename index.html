@@ -916,35 +916,33 @@ function openCercaOpenapi(){
     <div id="op-preview" style="font-size:12px;color:var(--ew-verde-dark);font-weight:600;margin:-6px 0 14px;padding:8px 12px;background:var(--ew-verde-ghost);border-radius:var(--rsm);display:none;"></div>
     <div class="frow"><div class="fgroup"><label>Comune (opzionale)</label><input id="op-comune" class="fi" placeholder="es. Milano"/></div><div class="fgroup"><label>Provincia (opzionale)</label><input id="op-prov" class="fi" maxlength="3" style="text-transform:uppercase;" placeholder="es. MI"/></div></div>`;
 
-  // Carica info credito dall'endpoint openapi.com
+  // Carica info credito tramite Edge Function (evita CORS)
   if(hasKey){
     const tokenKey = isSbx ? 'openapi_token_sandbox' : 'openapi_token_prod';
-    const token = S.settings[tokenKey];
-    const creditUrl = isSbx
-      ? `https://test.company.openapi.com/credit`
-      : `https://company.openapi.com/credit`;
-    fetch(creditUrl, { headers:{ 'Authorization': `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(data => {
-        const el = $('op-credito');
-        if(!el) return;
-        // Struttura risposta credito openapi.com
-        const credito = data?.data?.credit ?? data?.credit ?? data?.wallet ?? null;
-        const rimanenti = data?.data?.remaining ?? data?.remaining ?? data?.free_calls ?? null;
-        if(credito !== null){
-          el.innerHTML = `💳 Credito: <strong>${credito}</strong>`;
-        } else if(rimanenti !== null){
-          el.innerHTML = `💳 Richieste rimanenti oggi: <strong>${rimanenti}</strong>`;
-        } else {
-          // Logga la struttura ricevuta per capire i nomi dei campi
-          console.log('Credit endpoint response:', JSON.stringify(data).slice(0,300));
-          el.innerHTML = `💳 <span style="color:var(--txt-faint);">info credito non disponibili</span>`;
-        }
-      })
-      .catch(() => {
-        const el = $('op-credito');
-        if(el) el.innerHTML = '';
-      });
+    callFn('crm-cerca-prospect', {
+      action: 'get_credit',
+      openapi_key: S.settings[tokenKey],
+      use_sandbox: isSbx,
+    }).then(data => {
+      const el = $('op-credito');
+      if(!el) return;
+      if(data.ok && data.credito){
+        const cr = data.credito;
+        const parti = [];
+        if(cr.richieste_oggi !== null && cr.limite_giornaliero !== null)
+          parti.push(`Richieste oggi: <strong>${cr.richieste_oggi} / ${cr.limite_giornaliero}</strong>`);
+        else if(cr.richieste_oggi !== null)
+          parti.push(`Richieste rimanenti: <strong>${cr.richieste_oggi}</strong>`);
+        if(cr.credito_residuo !== null)
+          parti.push(`Credito: <strong>${cr.credito_residuo}</strong>`);
+        el.innerHTML = parti.length ? `💳 ${parti.join(' &nbsp;·&nbsp; ')}` : `💳 <span style="color:var(--txt-faint);">credito n/d</span>`;
+      } else {
+        el.innerHTML = '';
+      }
+    }).catch(() => {
+      const el = $('op-credito');
+      if(el) el.innerHTML = '';
+    });
   } else {
     const el = $('op-credito');
     if(el) el.innerHTML = '';
