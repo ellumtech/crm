@@ -922,7 +922,8 @@ function openCercaOpenapi(){
     const tokenKey = isSbx ? 'openapi_token_sandbox' : 'openapi_token_prod';
     callFn('crm-cerca-prospect', {
       action: 'get_credit',
-      openapi_key: S.settings[tokenKey],
+      openapi_key: S.settings['openapi_apikey'] || '',   // la API key grezza (non il token)
+      openapi_email: S.settings['openapi_email'] || '',  // email account openapi.com
       use_sandbox: isSbx,
     }).then(data => {
       const el = $('op-credito');
@@ -1342,6 +1343,8 @@ function renderSettings(pb){
     </div>
     <div class="card" style="margin-top:16px;">
       <div class="card-title">Chiavi API</div>
+      ${renderSettingRow('openapi_email','Openapi.it Email','Email del tuo account su console.openapi.com (per lettura credito wallet)')}
+      ${renderSettingRow('openapi_apikey','Openapi.it API Key','API Key grezza dalla console (non il token) — usata per leggere il credito wallet')}
       ${renderSettingRow('openapi_token_sandbox','Openapi.it Token Sandbox','Token dalla console → Authentication → Sandbox Token List')}
       ${renderSettingRow('openapi_token_prod','Openapi.it Token Produzione','Token dalla console → Authentication → Production Token List')}
       <div class="setting-row">
