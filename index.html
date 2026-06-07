@@ -918,6 +918,7 @@ function openCercaOpenapi(){
     <div class="frow"><div class="fgroup"><label>Comune (opzionale)</label><input id="op-comune" class="fi" placeholder="es. Milano"/></div><div class="fgroup"><label>Provincia (opzionale)</label><input id="op-prov" class="fi" maxlength="3" style="text-transform:uppercase;" placeholder="es. MI"/></div></div>`;
 
   // Credito: il piano free tier non espone API per le quote — link diretto alla dashboard
+  const elCred = $('op-credito');
   if(elCred){
     elCred.innerHTML = `💳 <a href="https://console.openapi.com/dashboard" target="_blank" 
       style="color:var(--ew-verde-dark);font-weight:600;text-decoration:none;font-size:11px;">
