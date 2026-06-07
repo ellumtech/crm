@@ -880,6 +880,10 @@ async function delAzienda(azId){
 // ── CERCA OPENAPI ─────────────────────────────────────
 // ═══════════════════════════════════════════════════════
 function openCercaOpenapi(){
+  console.log('S.settings:', JSON.stringify(S.settings));
+  console.log('openapi_sandbox:', S.settings['openapi_sandbox']);
+  console.log('openapi_token_sandbox:', S.settings['openapi_token_sandbox']);
+  console.log('openapi_token_prod:', S.settings['openapi_token_prod']);
   $('modal-title').textContent='Cerca Aziende su Openapi.it';
   $('modal-box').className='modal';
   const isSbx = S.settings['openapi_sandbox'] !== '0';
