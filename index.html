@@ -1407,7 +1407,7 @@ function renderUtenti(pb){
         <span class="tb-role" style="background:${u.ruolo==='admin'?'var(--ew-verde-xlight)':'var(--ew-grigio-ghost)'};color:${u.ruolo==='admin'?'var(--ew-verde-dark)':'var(--txt-soft)'};padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;">${esc(u.ruolo)}</span>
         <span style="font-size:11px;padding:3px 9px;border-radius:20px;background:${u.attivo?'#dcfce7':'var(--red-light)'};color:${u.attivo?'#16a34a':'var(--red)'};font-weight:700;">${u.attivo?'Attivo':'Disabilitato'}</span>
         <button class="btn btn-secondary btn-sm" onclick="openEditUser('${u.id}')">✏️</button>
-        ${u.id!==S.user.id?`<button class="btn btn-danger btn-sm" onclick="delUser('${u.id}')">🗑</button>`:''}
+        ${u.id!==S.user.id?`<button class="btn btn-danger btn-sm" onclick="delUser('${u.id}')">🗑</button>`:`<button class="btn btn-sm" disabled style="opacity:.35;cursor:not-allowed;background:var(--ew-grigio-ghost);color:var(--txt-soft);border:1px solid var(--ew-grigio-xlight);" title="Non puoi eliminare il tuo account">🗑</button>`}
       </div>`).join('')}
     </div>
   </div>`;
@@ -1705,7 +1705,7 @@ function renderAdminUtenti(){
       <span style="background:${u.ruolo==='admin'?'var(--ew-verde-xlight)':'var(--ew-grigio-ghost)'};color:${u.ruolo==='admin'?'var(--ew-verde-dark)':'var(--txt-soft)'};padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;">${esc(u.ruolo)}</span>
       <span style="font-size:11px;padding:3px 9px;border-radius:20px;background:${u.attivo?'#dcfce7':'var(--red-light)'};color:${u.attivo?'#16a34a':'var(--red)'};font-weight:700;">${u.attivo?'Attivo':'Disabilitato'}</span>
       <button class="btn btn-secondary btn-sm" onclick="openEditUser('${u.id}')">✏️</button>
-      ${u.id!==S.user.id?`<button class="btn btn-danger btn-sm" onclick="delUser('${u.id}')">🗑</button>`:''}
+      ${u.id!==S.user.id?`<button class="btn btn-danger btn-sm" onclick="delUser('${u.id}')">🗑</button>`:`<button class="btn btn-sm" disabled style="opacity:.35;cursor:not-allowed;background:var(--ew-grigio-ghost);color:var(--txt-soft);border:1px solid var(--ew-grigio-xlight);" title="Non puoi eliminare il tuo account">🗑</button>`}
     </div>`).join('')}
   </div>`;
   $('btn-new-user').addEventListener('click', openNewUser);
