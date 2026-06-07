@@ -880,15 +880,10 @@ async function delAzienda(azId){
 // ── CERCA OPENAPI ─────────────────────────────────────
 // ═══════════════════════════════════════════════════════
 function openCercaOpenapi(){
-  console.log('S.settings:', JSON.stringify(S.settings));
-  console.log('openapi_sandbox:', S.settings['openapi_sandbox']);
-  console.log('openapi_token_sandbox:', S.settings['openapi_token_sandbox']);
-  console.log('openapi_token_prod:', S.settings['openapi_token_prod']);
   $('modal-title').textContent='Cerca Aziende su Openapi.it';
   $('modal-box').className='modal';
   const isSbx = S.settings['openapi_sandbox'] !== '0';
   const hasKey = isSbx ? !!S.settings['openapi_token_sandbox'] : !!S.settings['openapi_token_prod'];
-  console.log('isSbx:', isSbx, '| hasKey:', hasKey);
   const ambienteLabel = isSbx
     ? '<span style="background:var(--ew-verde-xlight);color:var(--ew-verde-dark);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:800;letter-spacing:.4px;">SANDBOX</span>'
     : '<span style="background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:800;letter-spacing:.4px;">PRODUZIONE</span>';
@@ -952,7 +947,9 @@ function openCercaOpenapi(){
 
   $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="op-avvia">🔍 Avvia ricerca</button>';
   $('op-avvia').addEventListener('click',async()=>{
-    if(!S.settings['openapi_key']){ toast('Configura la chiave Openapi.it nelle Impostazioni','warn'); return; }
+    const isSandbox = S.settings['openapi_sandbox'] !== '0';
+    const openapiToken = isSandbox ? S.settings['openapi_token_sandbox'] : S.settings['openapi_token_prod'];
+    if(!openapiToken){ toast(`Configura il token ${isSandbox?'sandbox':'produzione'} nelle Impostazioni`,'warn'); return; }
     const ateco=$('op-ateco').value.trim(); if(!ateco){ toast('Codice ATECO obbligatorio','warn'); return; }
     // Leggi i valori in milioni e converti in euro (accetta sia virgola che punto)
     const fminRaw=$('op-fmin').value.replace(',','.');
