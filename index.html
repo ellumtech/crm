@@ -917,46 +917,11 @@ function openCercaOpenapi(){
     <div id="op-preview" style="font-size:12px;color:var(--ew-verde-dark);font-weight:600;margin:-6px 0 14px;padding:8px 12px;background:var(--ew-verde-ghost);border-radius:var(--rsm);display:none;"></div>
     <div class="frow"><div class="fgroup"><label>Comune (opzionale)</label><input id="op-comune" class="fi" placeholder="es. Milano"/></div><div class="fgroup"><label>Provincia (opzionale)</label><input id="op-prov" class="fi" maxlength="3" style="text-transform:uppercase;" placeholder="es. MI"/></div></div>`;
 
-  // Carica info credito tramite Edge Function (evita CORS)
-  const elCred = $('op-credito');
-  if(hasKey){
-    const hasCredentials = S.settings['openapi_apikey'] && S.settings['openapi_email'];
-    if(!hasCredentials){
-      if(elCred) elCred.innerHTML = `💳 <span style="color:var(--txt-faint);">configura Email e API Key nelle Impostazioni</span>`;
-    } else {
-      callFn('crm-cerca-prospect', {
-        action: 'get_credit',
-        openapi_key: S.settings['openapi_apikey'],
-        openapi_email: S.settings['openapi_email'],
-        use_sandbox: isSbx,
-      }).then(data => {
-        const el = $('op-credito');
-        if(!el) return;
-        console.log('get_credit response:', JSON.stringify(data).slice(0,400));
-        if(data.ok && data.credito){
-          const cr = data.credito;
-          // Logga la risposta raw per debug finché non troviamo i nomi esatti dei campi
-          console.log('Credit raw:', JSON.stringify(cr.raw).slice(0,300));
-          const parti = [];
-          if(cr.richieste_oggi !== null && cr.limite_giornaliero !== null)
-            parti.push(`Richieste: <strong>${cr.richieste_oggi}/${cr.limite_giornaliero}</strong>`);
-          else if(cr.richieste_oggi !== null)
-            parti.push(`Richieste rimanenti: <strong>${cr.richieste_oggi}</strong>`);
-          if(cr.credito_residuo !== null)
-            parti.push(`Credito: <strong>€${cr.credito_residuo}</strong>`);
-          el.innerHTML = parti.length
-            ? `💳 ${parti.join(' &nbsp;·&nbsp; ')}`
-            : `💳 <span style="color:var(--txt-faint);" title="${JSON.stringify(cr.raw).slice(0,100)}">credito n/d</span>`;
-        } else {
-          if(elCred) elCred.innerHTML = `💳 <span style="color:var(--red);font-size:11px;">${esc(data.error||'errore credito')}</span>`;
-        }
-      }).catch(e => {
-        const el = $('op-credito');
-        if(el) el.innerHTML = `💳 <span style="color:var(--red);font-size:11px;">${esc(e.message)}</span>`;
-      });
-    }
-  } else {
-    if(elCred) elCred.innerHTML = '';
+  // Credito: il piano free tier non espone API per le quote — link diretto alla dashboard
+  if(elCred){
+    elCred.innerHTML = `💳 <a href="https://console.openapi.com/dashboard" target="_blank" 
+      style="color:var(--ew-verde-dark);font-weight:600;text-decoration:none;font-size:11px;">
+      Verifica credito sulla console ↗</a>`;
   }
 
   // Preview filtro fatturato in tempo reale
@@ -1352,8 +1317,6 @@ function renderSettings(pb){
     </div>
     <div class="card" style="margin-top:16px;">
       <div class="card-title">Chiavi API</div>
-      ${renderSettingRow('openapi_email','Openapi.it Email','Email del tuo account su console.openapi.com (per lettura credito wallet)')}
-      ${renderSettingRow('openapi_apikey','Openapi.it API Key','API Key grezza dalla console (non il token) — usata per leggere il credito wallet')}
       ${renderSettingRow('openapi_token_sandbox','Openapi.it Token Sandbox','Token dalla console → Authentication → Sandbox Token List')}
       ${renderSettingRow('openapi_token_prod','Openapi.it Token Produzione','Token dalla console → Authentication → Production Token List')}
       <div class="setting-row">
