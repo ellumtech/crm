@@ -242,7 +242,11 @@ tbody td { padding:10px 14px; font-size:13px; color:var(--txt-mid); vertical-ali
 .spinner { display:inline-block; width:14px; height:14px; border:2px solid var(--ew-grigio-xlight); border-top-color:var(--ew-verde); border-radius:50%; animation:spin .7s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 
-/* ── Utenti ── */
+/* ── Multiselect pills ── */
+.ms-wrap { display:flex; flex-wrap:wrap; gap:6px; padding:6px 0; }
+.ms-pill { display:inline-flex; align-items:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; border:1.5px solid var(--ew-grigio-xlight); background:var(--ew-grigio-ghost); color:var(--txt-soft); transition:all .15s; user-select:none; }
+.ms-pill:hover { border-color:var(--ew-verde-light); background:var(--ew-verde-ghost); color:var(--ew-verde-dark); }
+.ms-pill.ms-on { background:var(--ew-verde-xlight); border-color:var(--ew-verde); color:var(--ew-verde-dark); }
 .user-row { display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--ew-grigio-ghost); }
 .user-row:last-child { border-bottom:none; }
 .user-av { width:36px; height:36px; border-radius:50%; background:var(--ew-verde-xlight); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; color:var(--ew-verde-dark); flex-shrink:0; }
@@ -741,6 +745,10 @@ function openScheda(azId){
           ${az.sito_web?`<div style="padding:6px 0;border-bottom:1px solid var(--ew-grigio-ghost);"><span style="font-size:11px;color:var(--txt-soft);text-transform:uppercase;font-weight:700;">Sito Web</span><div style="margin-top:2px;"><a href="${esc(az.sito_web)}" target="_blank" style="color:var(--blue);text-decoration:none;font-size:13px;">${esc(az.sito_web)}</a></div></div>`:''}
           ${az.linkedin_url?`<div style="padding:6px 0;border-bottom:1px solid var(--ew-grigio-ghost);"><span style="font-size:11px;color:var(--txt-soft);text-transform:uppercase;font-weight:700;">LinkedIn</span><div style="margin-top:2px;"><a href="${esc(az.linkedin_url)}" target="_blank" style="color:var(--blue);text-decoration:none;font-size:13px;">Profilo LinkedIn ↗</a></div></div>`:''}
           ${az.note?renderKV('Note',az.note):''}
+          ${az.ambiti?.length?renderKV('Ambiti',az.ambiti.join(', ')):''}
+          ${az.applicazioni?.length?renderKV('Applicazioni',az.applicazioni.join(', ')):''}
+          ${az.settori?.length?renderKV('Settori',az.settori.join(', ')):''}
+          ${az.prodotti_ewenco?.length?renderKV('Prodotti E-wenco',az.prodotti_ewenco.join(', ')):''}
           <div style="margin-top:12px;font-size:11px;color:var(--txt-faint);">Inserita il ${fmt(az.created_at)} · Aggiornata il ${fmt(az.updated_at)}</div>
         </div>
       </div>`;
@@ -800,6 +808,25 @@ function openEditAzienda(azId){
   openModal();
 }
 
+function renderMultiSelect(id, legendaKey, valoriSelezionati){
+  const items = getLegenda(legendaKey);
+  const sel = Array.isArray(valoriSelezionati) ? valoriSelezionati : [];
+  if(!items.length) return `<div style="font-size:12px;color:var(--txt-faint);padding:6px 0;">Nessuna voce — configurala in Admin → Legende</div>`;
+  return `<div class="ms-wrap" id="${id}">
+    ${items.map(item=>`<label class="ms-pill ${sel.includes(item)?'ms-on':''}">
+      <input type="checkbox" style="display:none;" value="${esc(item)}" ${sel.includes(item)?'checked':''}
+        onchange="this.closest('label').classList.toggle('ms-on',this.checked)">
+      ${esc(item)}
+    </label>`).join('')}
+  </div>`;
+}
+
+function getMultiSelectValues(id){
+  const wrap = document.getElementById(id);
+  if(!wrap) return [];
+  return [...wrap.querySelectorAll('input[type=checkbox]:checked')].map(cb=>cb.value);
+}
+
 function formAzienda(az){
   return `
     <div class="frow"><div class="fgroup"><label>Ragione Sociale *</label><input id="az-rs" class="fi" value="${esc(az.ragione_sociale||'')}"/></div><div class="fgroup"><label>Partita IVA</label><input id="az-piva" class="fi" style="font-family:'DM Mono',monospace;" value="${esc(az.partita_iva||'')}"/></div></div>
@@ -816,6 +843,8 @@ function formAzienda(az){
       <option value="perso" ${az.stato_commerciale==='perso'?'selected':''}>Perso</option>
       <option value="non_interessato" ${az.stato_commerciale==='non_interessato'?'selected':''}>Non Interessato</option>
     </select></div></div>
+    <div class="frow"><div class="fgroup"><label>Ambito</label>${renderMultiSelect('ms-ambiti','ambiti',az.ambiti)}</div><div class="fgroup"><label>Settore</label>${renderMultiSelect('ms-settori','settori',az.settori)}</div></div>
+    <div class="frow"><div class="fgroup"><label>Applicazione</label>${renderMultiSelect('ms-applicazioni','applicazioni',az.applicazioni)}</div><div class="fgroup"><label>Prodotto E-wenco</label>${renderMultiSelect('ms-prodotti','prodotti_ewenco',az.prodotti_ewenco)}</div></div>
     <div class="frow full"><div class="fgroup"><label>Note</label><textarea id="az-note" class="fta">${esc(az.note||'')}</textarea></div></div>`;
 }
 
@@ -838,10 +867,14 @@ async function saveAzienda(azId){
     pec:$('az-pec').value.trim()||null,
     stato_commerciale:$('az-stato').value,
     note:$('az-note').value.trim()||null,
+    ambiti:getMultiSelectValues('ms-ambiti'),
+    applicazioni:getMultiSelectValues('ms-applicazioni'),
+    settori:getMultiSelectValues('ms-settori'),
+    prodotti_ewenco:getMultiSelectValues('ms-prodotti'),
     inserito_manualmente:true,
     updated_at:new Date().toISOString(),
   };
-  // Rimuovi nulls
+  // Rimuovi null ma mantieni array (anche vuoti)
   Object.keys(body).forEach(k=>{ if(body[k]===null) delete body[k]; });
   try{
     if(azId){
@@ -1738,6 +1771,14 @@ function renderAdminLegende(){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
       ${renderLegendaCard('tipi_operazione','Tipi di Operazione','Le operazioni disponibili nel selettore "Tipo Operazione" della timeline')}
       ${renderLegendaCard('tipi_azione','Tipi di Prossima Azione','Le azioni disponibili nel selettore "Tipo Azione" delle prossime azioni')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;">
+      ${renderLegendaCard('ambiti','Ambiti','Ambiti di attività associabili alle aziende')}
+      ${renderLegendaCard('applicazioni','Applicazioni','Applicazioni associabili alle aziende')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;">
+      ${renderLegendaCard('settori','Settori','Settori merceologici associabili alle aziende')}
+      ${renderLegendaCard('prodotti_ewenco','Prodotti E-wenco','Prodotti E-wenco associabili alle aziende')}
     </div>`;
 
   // Attach events
