@@ -302,7 +302,6 @@ tbody td { padding:10px 14px; font-size:13px; color:var(--txt-mid); vertical-ali
     <nav id="tb-nav">
       <button class="tnb active" data-page="aziende">Aziende</button>
       <button class="tnb" data-page="azioni">Prossime Azioni <span class="badge" id="badge-azioni" style="display:none"></span></button>
-      <button class="tnb" data-page="settings">Impostazioni</button>
       <button class="tnb" data-page="admin" id="tnb-admin" style="display:none">Admin</button>
     </nav>
   </div>
@@ -348,7 +347,8 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function fmt(d){ if(!d) return '—'; const dt=typeof d==='string'?new Date(d.length===10?d+'T00:00:00':d):d; return dt.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
 function fmtDT(d){ if(!d) return '—'; return new Date(d).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
-function fmtEuro(v){ if(v===null||v===undefined) return '—'; return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v); }
+function fmtEuro(v){ if(v===null||v===undefined) return '—'; return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:2}).format(v)+' Mln'; }
+function fmtEuroFull(v){ if(v===null||v===undefined) return '—'; return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v*1_000_000); }
 
 let _tid;
 function toast(msg, type='ok'){ const el=$('toast'); clearTimeout(_tid); el.textContent=msg; el.className=`show t${type}`; _tid=setTimeout(()=>el.className='', msg.length>60?6000:3500); }
@@ -433,6 +433,10 @@ async function initApp(){
   $('tb-role').textContent = S.ruolo||'viewer';
   document.querySelectorAll('.tnb').forEach(b => b.addEventListener('click',()=>goPage(b.dataset.page)));
   if(S.ruolo==='admin') { const ta=$('tnb-admin'); if(ta) ta.style.display=''; }
+  else {
+    // Viewer vede solo Admin con tab Impostazioni (sola lettura)
+    const ta=$('tnb-admin'); if(ta) ta.style.display='';
+  }
   $('lout').addEventListener('click', doLogout);
   await loadAll();
   updateEnvBadge();
@@ -469,8 +473,6 @@ function goPage(pg){
   const pb=$('pb');
   if(pg==='aziende') renderAziende(pb);
   else if(pg==='azioni') renderAzioni(pb);
-  else if(pg==='settings') renderSettings(pb);
-  else if(pg==='utenti') renderUtenti(pb);
   else if(pg==='admin') renderAdmin(pb);
 }
 
@@ -489,6 +491,16 @@ function aziendeFiltered(){
   let list = S.aziende.filter(a=>{
     if(S.filtri.stato && a.stato_commerciale!==S.filtri.stato) return false;
     if(S.filtri.ateco && !(a.codice_ateco||'').startsWith(S.filtri.ateco)) return false;
+    if(S.filtri.ambito && !(a.ambiti||[]).includes(S.filtri.ambito)) return false;
+    if(S.filtri.applicazione && !(a.applicazioni||[]).includes(S.filtri.applicazione)) return false;
+    if(S.filtri.tipo_operazione){
+      const hasOp = S.operazioni.some(o=>o.azienda_id===a.id && o.tipo_operazione===S.filtri.tipo_operazione);
+      if(!hasOp) return false;
+    }
+    if(S.filtri.tipo_azione){
+      const hasAz = S.azioni.some(x=>x.azienda_id===a.id && x.tipo_azione===S.filtri.tipo_azione);
+      if(!hasAz) return false;
+    }
     if(S.filtri.search){
       const q=S.filtri.search.toLowerCase();
       return (a.ragione_sociale||'').toLowerCase().includes(q)||
@@ -513,80 +525,121 @@ function statoBadge(stato){
   return `<span class="badge-stato s-${stato}"><span class="dot d-${stato}"></span>${L[stato]||stato}</span>`;
 }
 
-function renderAziende(pb){
+function renderTbodyAziende(){
   const list=aziendeFiltered();
-  const cnt={prospect:0,in_trattativa:0,cliente:0,perso:0,non_interessato:0};
-  S.aziende.forEach(a=>{ if(cnt[a.stato_commerciale]!==undefined) cnt[a.stato_commerciale]++; });
+  const tbody=$('tbody-az'); if(!tbody) return;
+  const contatore=$('az-contatore'); if(contatore) contatore.textContent=list.length+' aziende';
+  if(list.length===0){
+    tbody.innerHTML='<tr><td colspan="8"><div class="empty"><div class="ei">&#127970;</div><p>Nessuna azienda</p><small>Aggiungi manualmente o cerca su Openapi.it</small></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML=list.map(a=>{
+    const nct=S.contatti.filter(c=>c.azienda_id===a.id).length;
+    const lastOp=S.operazioni.filter(o=>o.azienda_id===a.id)[0];
+    const aziProm=S.azioni.filter(x=>x.azienda_id===a.id&&x.stato==='in_attesa').length;
+    return `<tr style="cursor:pointer;" onclick="openScheda('${a.id}')">
+      <td>
+        <div style="font-weight:700;color:var(--txt);">${esc(a.ragione_sociale)}</div>
+        ${a.sito_web?`<div style="font-size:11px;margin-top:2px;"><a href="${esc(a.sito_web)}" target="_blank" style="color:var(--ew-verde-dark);text-decoration:none;" onclick="event.stopPropagation()">${esc(a.sito_web.replace(/https?:\/\//,''))}</a></div>`:''}
+        ${a.partita_iva?`<div style="font-size:11px;color:var(--txt-faint);font-family:'DM Mono',monospace;">P.IVA ${esc(a.partita_iva)}</div>`:''}
+      </td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:12px;">${esc(a.codice_ateco||'—')}</span></td>
+      <td style="font-size:13px;">${esc(a.comune||'—')}${a.provincia?` (${esc(a.provincia)})`:''}</td>
+      <td style="font-size:13px;font-weight:600;">${a.fatturato_valore?fmtEuro(a.fatturato_valore):'—'}</td>
+      <td>${statoBadge(a.stato_commerciale)}</td>
+      <td style="font-size:13px;text-align:center;">${nct||'—'}${aziProm>0?` <span class="badge" style="background:var(--orange);color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;">${aziProm}</span>`:''}</td>
+      <td style="font-size:12px;color:var(--txt-soft);">${lastOp?fmt(lastOp.data_operazione):'—'}</td>
+      <td onclick="event.stopPropagation()">
+        <div style="display:flex;gap:5px;">
+          ${S.ruolo==='admin'?`<button class="btn btn-secondary btn-sm" onclick="openScheda('${a.id}')">Apri</button>`:''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
 
-  pb.innerHTML=`<div class="page-wrap">
-  <div class="page-header">
-    <div>
-      <div class="page-title">Aziende</div>
-      <div class="page-subtitle">Gestione prospect e clienti commerciali</div>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      ${S.ruolo==='admin'?'<button class="btn btn-secondary" id="btn-add-manuale">+ Aggiungi manuale</button><button class="btn btn-primary" id="btn-cerca-openapi">&#128269; Cerca su Openapi.it</button>':''}
-    </div>
-  </div>
-  <div class="stats-row">
-    <div class="stat-card"><div style="display:flex;align-items:center;"><span class="stat-accent"></span><div><div class="stat-val">${S.aziende.length}</div><div class="stat-lbl">Totali</div></div></div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--ew-verde-dark)">${cnt.prospect}</div><div class="stat-lbl">Prospect</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--orange)">${cnt.in_trattativa}</div><div class="stat-lbl">In Trattativa</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:#16a34a">${cnt.cliente}</div><div class="stat-lbl">Clienti</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--red)">${cnt.perso}</div><div class="stat-lbl">Persi</div></div>
-  </div>
-  <div class="toolbar">
-    <input type="search" id="f-search" placeholder="Cerca ragione sociale, città, P.IVA..." value="${esc(S.filtri.search)}" style="width:260px;"/>
-    <select id="f-stato" style="min-width:150px;">
-      <option value="">Tutti gli stati</option>
-      <option value="prospect" ${S.filtri.stato==='prospect'?'selected':''}>Prospect</option>
-      <option value="in_trattativa" ${S.filtri.stato==='in_trattativa'?'selected':''}>In trattativa</option>
-      <option value="cliente" ${S.filtri.stato==='cliente'?'selected':''}>Cliente</option>
-      <option value="perso" ${S.filtri.stato==='perso'?'selected':''}>Perso</option>
-      <option value="non_interessato" ${S.filtri.stato==='non_interessato'?'selected':''}>Non interessato</option>
-    </select>
-    <input type="text" id="f-ateco" placeholder="Codice ATECO..." value="${esc(S.filtri.ateco)}" style="width:140px;"/>
-    <button class="btn btn-secondary btn-sm" id="btn-reset">&#8635; Reset</button>
-    <div style="margin-left:auto;font-size:12px;color:var(--txt-soft);">${list.length} aziende</div>
-  </div>
-  <div class="tbl-wrap"><table>
-    <thead><tr>
-      <th>Ragione Sociale</th><th>ATECO</th><th>Comune</th><th>Fatturato</th><th>Stato</th><th>Contatti</th><th>Ultima op.</th><th>Azioni</th>
-    </tr></thead>
-    <tbody id="tbody-az">
-    ${list.length===0?'<tr><td colspan="8"><div class="empty"><div class="ei">&#127970;</div><p>Nessuna azienda</p><small>Aggiungi manualmente o cerca su Openapi.it</small></div></td></tr>':
-    list.map(a=>{
-      const nct=S.contatti.filter(c=>c.azienda_id===a.id).length;
-      const lastOp=S.operazioni.filter(o=>o.azienda_id===a.id)[0];
-      const aziProm=S.azioni.filter(x=>x.azienda_id===a.id&&x.stato==='in_attesa').length;
-      return `<tr style="cursor:pointer;" onclick="openScheda('${a.id}')">
-        <td>
-          <div style="font-weight:700;color:var(--txt);">${esc(a.ragione_sociale)}</div>
-          ${a.sito_web?`<div style="font-size:11px;margin-top:2px;"><a href="${esc(a.sito_web)}" target="_blank" style="color:var(--ew-verde-dark);text-decoration:none;" onclick="event.stopPropagation()">${esc(a.sito_web.replace(/https?:\/\//,''))}</a></div>`:''}
-          ${a.partita_iva?`<div style="font-size:11px;color:var(--txt-faint);font-family:'DM Mono',monospace;">P.IVA ${esc(a.partita_iva)}</div>`:''}
-        </td>
-        <td><span style="font-family:'DM Mono',monospace;font-size:12px;">${esc(a.codice_ateco||'—')}</span></td>
-        <td style="font-size:13px;">${esc(a.comune||'—')}${a.provincia?` (${esc(a.provincia)})`:''}</td>
-        <td style="font-size:13px;font-weight:600;">${a.fatturato_valore?fmtEuro(a.fatturato_valore):'—'}</td>
-        <td>${statoBadge(a.stato_commerciale)}</td>
-        <td style="font-size:13px;text-align:center;">${nct||'—'}${aziProm>0?` <span class="badge" style="background:var(--orange);color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;">${aziProm}</span>`:''}</td>
-        <td style="font-size:12px;color:var(--txt-soft);">${lastOp?fmt(lastOp.data_operazione):'—'}</td>
-        <td onclick="event.stopPropagation()">
-          <div style="display:flex;gap:5px;">
-            ${S.ruolo==='admin'?`<button class="btn btn-secondary btn-sm" onclick="openScheda('${a.id}')">Apri</button>`:''}
-          </div>
-        </td>
-      </tr>`;
-    }).join('')}
-    </tbody>
-  </table></div></div>`;
+function renderAziende(pb){
+  // Prima visita: costruisce tutta la struttura statica
+  if(!$('tbody-az')){
+    const cnt={prospect:0,in_trattativa:0,cliente:0,perso:0,non_interessato:0};
+    S.aziende.forEach(a=>{ if(cnt[a.stato_commerciale]!==undefined) cnt[a.stato_commerciale]++; });
 
-  $('f-search').addEventListener('input',e=>{S.filtri.search=e.target.value;renderAziende($('pb'));});
-  $('f-stato').addEventListener('change',e=>{S.filtri.stato=e.target.value;renderAziende($('pb'));});
-  $('f-ateco').addEventListener('input',e=>{S.filtri.ateco=e.target.value;renderAziende($('pb'));});
-  $('btn-reset').addEventListener('click',()=>{S.filtri={stato:'',search:'',ateco:''};renderAziende($('pb'));});
-  if($('btn-add-manuale')) $('btn-add-manuale').addEventListener('click',openAddAzienda);
-  if($('btn-cerca-openapi')) $('btn-cerca-openapi').addEventListener('click',openCercaOpenapi);
+    // Valori unici per i nuovi filtri
+    const allAmbiti = [...new Set(S.aziende.flatMap(a=>a.ambiti||[]))].sort();
+    const allAppl   = [...new Set(S.aziende.flatMap(a=>a.applicazioni||[]))].sort();
+    const tipiOp    = getLegenda('tipi_operazione');
+    const tipiAz    = getLegenda('tipi_azione');
+
+    pb.innerHTML=`<div class="page-wrap">
+    <div class="page-header">
+      <div><div class="page-title">Aziende</div><div class="page-subtitle">Gestione prospect e clienti commerciali</div></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        ${S.ruolo==='admin'?'<button class="btn btn-secondary" id="btn-add-manuale">+ Aggiungi manuale</button><button class="btn btn-primary" id="btn-cerca-openapi">&#128269; Cerca su Openapi.it</button>':''}
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div style="display:flex;align-items:center;"><span class="stat-accent"></span><div><div class="stat-val">${S.aziende.length}</div><div class="stat-lbl">Totali</div></div></div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--ew-verde-dark)">${cnt.prospect}</div><div class="stat-lbl">Prospect</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--orange)">${cnt.in_trattativa}</div><div class="stat-lbl">In Trattativa</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:#16a34a">${cnt.cliente}</div><div class="stat-lbl">Clienti</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--red)">${cnt.perso}</div><div class="stat-lbl">Persi</div></div>
+    </div>
+    <div class="toolbar" style="flex-wrap:wrap;gap:8px;">
+      <input type="search" id="f-search" placeholder="Cerca ragione sociale, città, P.IVA..." value="${esc(S.filtri.search)}" style="width:260px;"/>
+      <select id="f-stato" style="min-width:140px;">
+        <option value="">Tutti gli stati</option>
+        <option value="prospect" ${S.filtri.stato==='prospect'?'selected':''}>Prospect</option>
+        <option value="in_trattativa" ${S.filtri.stato==='in_trattativa'?'selected':''}>In trattativa</option>
+        <option value="cliente" ${S.filtri.stato==='cliente'?'selected':''}>Cliente</option>
+        <option value="perso" ${S.filtri.stato==='perso'?'selected':''}>Perso</option>
+        <option value="non_interessato" ${S.filtri.stato==='non_interessato'?'selected':''}>Non interessato</option>
+      </select>
+      <input type="text" id="f-ateco" placeholder="ATECO..." value="${esc(S.filtri.ateco)}" style="width:100px;"/>
+      <select id="f-ambito" style="min-width:130px;">
+        <option value="">Ambito...</option>
+        ${allAmbiti.map(v=>`<option value="${esc(v)}" ${S.filtri.ambito===v?'selected':''}>${esc(v)}</option>`).join('')}
+      </select>
+      <select id="f-appl" style="min-width:150px;">
+        <option value="">Applicazione...</option>
+        ${allAppl.map(v=>`<option value="${esc(v)}" ${S.filtri.applicazione===v?'selected':''}>${esc(v)}</option>`).join('')}
+      </select>
+      <select id="f-tipo-op" style="min-width:150px;">
+        <option value="">Tipo operazione...</option>
+        ${tipiOp.map(v=>`<option value="${esc(v)}" ${S.filtri.tipo_operazione===v?'selected':''}>${esc(v)}</option>`).join('')}
+      </select>
+      <select id="f-tipo-az" style="min-width:150px;">
+        <option value="">Tipo azione...</option>
+        ${tipiAz.map(v=>`<option value="${esc(v)}" ${S.filtri.tipo_azione===v?'selected':''}>${esc(v)}</option>`).join('')}
+      </select>
+      <button class="btn btn-secondary btn-sm" id="btn-reset">&#8635; Reset</button>
+      <div style="margin-left:auto;font-size:12px;color:var(--txt-soft);" id="az-contatore"></div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Ragione Sociale</th><th>ATECO</th><th>Comune</th><th>Fatturato</th><th>Stato</th><th>Contatti</th><th>Ultima op.</th><th>Azioni</th>
+      </tr></thead>
+      <tbody id="tbody-az"></tbody>
+    </table></div></div>`;
+
+    // Event listeners — attaccati UNA VOLTA SOLA
+    $('f-search').addEventListener('input',e=>{S.filtri.search=e.target.value;renderTbodyAziende();});
+    $('f-stato').addEventListener('change',e=>{S.filtri.stato=e.target.value;renderTbodyAziende();});
+    $('f-ateco').addEventListener('input',e=>{S.filtri.ateco=e.target.value;renderTbodyAziende();});
+    $('f-ambito').addEventListener('change',e=>{S.filtri.ambito=e.target.value;renderTbodyAziende();});
+    $('f-appl').addEventListener('change',e=>{S.filtri.applicazione=e.target.value;renderTbodyAziende();});
+    $('f-tipo-op').addEventListener('change',e=>{S.filtri.tipo_operazione=e.target.value;renderTbodyAziende();});
+    $('f-tipo-az').addEventListener('change',e=>{S.filtri.tipo_azione=e.target.value;renderTbodyAziende();});
+    $('btn-reset').addEventListener('click',()=>{
+      S.filtri={stato:'',search:'',ateco:'',ambito:'',applicazione:'',tipo_operazione:'',tipo_azione:''};
+      $('f-search').value=''; $('f-stato').value=''; $('f-ateco').value='';
+      $('f-ambito').value=''; $('f-appl').value='';
+      $('f-tipo-op').value=''; $('f-tipo-az').value='';
+      renderTbodyAziende();
+    });
+    if($('btn-add-manuale')) $('btn-add-manuale').addEventListener('click',openAddAzienda);
+    if($('btn-cerca-openapi')) $('btn-cerca-openapi').addEventListener('click',openCercaOpenapi);
+  }
+  renderTbodyAziende();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -831,7 +884,7 @@ function formAzienda(az){
   return `
     <div class="frow"><div class="fgroup"><label>Ragione Sociale *</label><input id="az-rs" class="fi" value="${esc(az.ragione_sociale||'')}"/></div><div class="fgroup"><label>Partita IVA</label><input id="az-piva" class="fi" style="font-family:'DM Mono',monospace;" value="${esc(az.partita_iva||'')}"/></div></div>
     <div class="frow three"><div class="fgroup"><label>Codice ATECO</label><input id="az-ateco" class="fi" style="font-family:'DM Mono',monospace;" value="${esc(az.codice_ateco||'')}"/></div><div class="fgroup"><label>Desc. ATECO</label><input id="az-dateco" class="fi" value="${esc(az.descrizione_ateco||'')}"/></div><div class="fgroup"><label>Forma Giuridica</label><input id="az-fgiur" class="fi" value="${esc(az.forma_giuridica||'')}"/></div></div>
-    <div class="frow"><div class="fgroup"><label>Fatturato (€)</label><input type="number" id="az-fatt" class="fi" value="${az.fatturato_valore||''}"/></div><div class="fgroup"><label>Anno Bilancio</label><input type="number" id="az-abilan" class="fi" value="${az.anno_bilancio||''}"/></div></div>
+    <div class="frow"><div class="fgroup"><label>Fatturato (Mln €)</label><input type="number" id="az-fatt" class="fi" step="0.01" value="${az.fatturato_valore||''}"/></div><div class="fgroup"><label>Anno Bilancio</label><input type="number" id="az-abilan" class="fi" value="${az.anno_bilancio||''}"/></div></div>
     <div class="frow three"><div class="fgroup"><label>Comune</label><input id="az-comune" class="fi" value="${esc(az.comune||'')}"/></div><div class="fgroup"><label>Provincia</label><input id="az-prov" class="fi" maxlength="3" style="text-transform:uppercase;" value="${esc(az.provincia||'')}"/></div><div class="fgroup"><label>CAP</label><input id="az-cap" class="fi" maxlength="5" style="font-family:'DM Mono',monospace;" value="${esc(az.cap||'')}"/></div></div>
     <div class="frow full"><div class="fgroup"><label>Indirizzo</label><input id="az-ind" class="fi" value="${esc(az.indirizzo||'')}"/></div></div>
     <div class="frow"><div class="fgroup"><label>Sito Web</label><input id="az-web" class="fi" placeholder="https://..." value="${esc(az.sito_web||'')}"/></div><div class="fgroup"><label>LinkedIn</label><input id="az-li" class="fi" placeholder="https://linkedin.com/company/..." value="${esc(az.linkedin_url||'')}"/></div></div>
@@ -1047,7 +1100,7 @@ function openNuovaOperazione(azId){
     ${contatti.length?`<div class="frow full"><div class="fgroup"><label>Contatto (opzionale)</label><select id="op-ct" class="fse"><option value="">— Nessun contatto specifico —</option>${contatti.map(c=>`<option value="${c.id}">${esc(c.nome)} ${esc(c.cognome||'')}${c.ruolo_aziendale?' — '+esc(c.ruolo_aziendale):''}</option>`).join('')}</select></div></div>`:''}
     <div class="frow full"><div class="fgroup"><label>Data *</label><input type="datetime-local" id="op-data" class="fi" value="${new Date().toISOString().slice(0,16)}"/></div></div>
     <div class="frow full"><div class="fgroup"><label>Dettagli</label><textarea id="op-det" class="fta" placeholder="Descrizione dell'operazione..."></textarea></div></div>`;
-  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="op-save">Salva</button>';
+  $('modal-foot').innerHTML=`<button class="btn btn-secondary" onclick="openScheda('${azId}')">Annulla</button><button class="btn btn-primary" id="op-save">Salva</button>`;
   $('op-save').addEventListener('click',async()=>{
     const tipo=$('op-tipo').value;
     const data=$('op-data').value; if(!data){ toast('Data obbligatoria','warn'); return; }
@@ -1080,7 +1133,7 @@ function openAddContatto(azId){
   $('modal-title').textContent='Nuovo Contatto';
   $('modal-box').className='modal';
   $('modal-body').innerHTML=formContatto({});
-  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="ct-save">Aggiungi</button>';
+  $('modal-foot').innerHTML=`<button class="btn btn-secondary" onclick="openScheda('${azId}')">Annulla</button><button class="btn btn-primary" id="ct-save">Aggiungi</button>`;
   $('ct-save').addEventListener('click',()=>saveContatto(null,azId));
   openModal();
 }
@@ -1196,7 +1249,7 @@ function openNuovaAzione(azId){
     ${contatti.length?`<div class="frow full"><div class="fgroup"><label>Contatto (opzionale)</label><select id="az-ct" class="fse"><option value="">— Nessuno —</option>${contatti.map(c=>`<option value="${c.id}">${esc(c.nome)} ${esc(c.cognome||'')}</option>`).join('')}</select></div></div>`:''}
     ${profili.length?`<div class="frow full"><div class="fgroup"><label>Assegna a</label><select id="az-gest" class="fse"><option value="">— Nessuno —</option>${profili.map(p=>`<option value="${p.id}">${esc(p.nome)} ${esc(p.cognome||'')}</option>`).join('')}</select></div></div>`:''}
     <div class="frow full"><div class="fgroup"><label>Note</label><textarea id="az-note" class="fta"></textarea></div></div>`;
-  $('modal-foot').innerHTML='<button class="btn btn-secondary" onclick="closeModal()">Annulla</button><button class="btn btn-primary" id="az-save">Salva</button>';
+  $('modal-foot').innerHTML=`<button class="btn btn-secondary" onclick="openScheda('${azId}')">Annulla</button><button class="btn btn-primary" id="az-save">Salva</button>`;
   $('az-save').addEventListener('click',async()=>{
     const tipo=$('az-tipo').value, scad=$('az-scad').value;
     if(!scad){ toast('Data scadenza obbligatoria','warn'); return; }
@@ -1342,10 +1395,11 @@ async function completaAzioneGlobal(azId){
 // ═══════════════════════════════════════════════════════
 // ── SETTINGS ──────────────────────────────────────────
 // ═══════════════════════════════════════════════════════
-function renderSettings(pb){
-  pb.innerHTML=`<div class="page-wrap" style="max-width:720px;">
-    <div class="page-header"><div><div class="page-title">Impostazioni</div><div class="page-subtitle">Configurazione chiavi API e preferenze</div></div></div>
-    <div class="card">
+function renderSettings(container){
+  const isSubtab = container.id === 'admin-content';
+  container.innerHTML=`<div ${isSubtab?'':'class="page-wrap"'} style="${isSubtab?'':'max-width:720px;'}">
+    ${!isSubtab?'<div class="page-header"><div><div class="page-title">Impostazioni</div><div class="page-subtitle">Configurazione chiavi API e preferenze</div></div></div>':''}
+    <div class="card" ${isSubtab?'style="margin-top:16px;"':''}>
       <div class="card-title">Supabase</div>
       <div class="info-box" style="font-family:'DM Mono',monospace;font-size:12px;">
         URL: ${esc(CFG.URL)}<br>Build: ${BUILD}
@@ -1703,14 +1757,16 @@ async function toggleSandbox(){
 // ═══════════════════════════════════════════════════════
 // ── ADMIN ─────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════
-function renderAdmin(pb, activeTab='utenti'){
+function renderAdmin(pb, activeTab='impostazioni'){
   pb.innerHTML=`<div class="page-wrap">
     <div class="page-header">
-      <div><div class="page-title">Amministrazione</div><div class="page-subtitle">Gestione utenti e configurazione legende</div></div>
+      <div><div class="page-title">Amministrazione</div><div class="page-subtitle">Impostazioni, utenti e legende</div></div>
     </div>
     <div class="tabs" id="admin-tabs">
+      <div class="tab ${activeTab==='impostazioni'?'active':''}" data-atab="impostazioni">⚙️ Impostazioni</div>
+      ${S.ruolo==='admin'?`
       <div class="tab ${activeTab==='utenti'?'active':''}" data-atab="utenti">👥 Utenti</div>
-      <div class="tab ${activeTab==='legende'?'active':''}" data-atab="legende">🏷️ Legende</div>
+      <div class="tab ${activeTab==='legende'?'active':''}" data-atab="legende">🏷️ Legende</div>`:''}
     </div>
     <div id="admin-content"></div>
   </div>`;
@@ -1719,7 +1775,8 @@ function renderAdmin(pb, activeTab='utenti'){
     t.addEventListener('click',()=>renderAdmin(pb, t.dataset.atab))
   );
 
-  if(activeTab==='utenti') renderAdminUtenti();
+  if(activeTab==='impostazioni') renderSettings($('admin-content'));
+  else if(activeTab==='utenti') renderAdminUtenti();
   else if(activeTab==='legende') renderAdminLegende();
 }
 
