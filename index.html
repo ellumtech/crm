@@ -1839,7 +1839,7 @@ function renderAdminLegende(){
     </div>`;
 
   // Attach events
-  ['tipi_azione','tipi_operazione'].forEach(chiave=>{
+  ['tipi_azione','tipi_operazione','ambiti','applicazioni','settori','prodotti_ewenco'].forEach(chiave=>{
     $(`btn-add-${chiave}`).addEventListener('click',()=>addLegendaItem(chiave));
     $(`inp-add-${chiave}`).addEventListener('keydown',e=>{ if(e.key==='Enter') addLegendaItem(chiave); });
   });
