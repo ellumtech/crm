@@ -141,6 +141,9 @@ main#main { flex:1; padding:28px 32px; }
 .tbl-wrap { overflow-x:auto; border-radius:var(--r); border:1px solid var(--ew-grigio-xlight); }
 table { width:100%; border-collapse:collapse; background:#fff; }
 thead th { background:var(--ew-grigio-ghost); padding:10px 14px; text-align:left; font-size:11px; font-weight:700; color:var(--txt-mid); text-transform:uppercase; letter-spacing:.5px; border-bottom:1px solid var(--ew-grigio-xlight); white-space:nowrap; }
+.th-sort:hover { background:var(--ew-verde-ghost); color:var(--ew-verde-dark); }
+.sort-arrow { font-size:9px; opacity:.5; }
+.th-sort.sort-active .sort-arrow { opacity:1; color:var(--ew-verde-dark); }
 tbody tr { border-bottom:1px solid var(--ew-grigio-ghost); transition:background .12s; }
 tbody tr:last-child { border-bottom:none; }
 tbody tr:hover { background:var(--ew-verde-ghost); }
@@ -149,6 +152,8 @@ tbody td { padding:10px 14px; font-size:13px; color:var(--txt-mid); vertical-ali
 /* ── Badges ── */
 .badge-stato { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; }
 .s-prospect      { background:var(--ew-verde-xlight); color:var(--ew-verde-dark); }
+.s-msg_linkedin  { background:#E0F2FE; color:#0369A1; }
+.s-in_contatto   { background:#EDE9FE; color:#6D28D9; }
 .s-in_trattativa { background:var(--orange-light); color:var(--orange); }
 .s-cliente       { background:#dcfce7; color:#16a34a; }
 .s-perso         { background:var(--red-light); color:var(--red); }
@@ -160,6 +165,8 @@ tbody td { padding:10px 14px; font-size:13px; color:var(--txt-mid); vertical-ali
 .p-bassa   { background:var(--ew-grigio-ghost); color:var(--txt-soft); }
 .dot { width:7px; height:7px; border-radius:50%; display:inline-block; flex-shrink:0; }
 .d-prospect { background:var(--ew-verde); }
+.d-msg_linkedin { background:#0EA5E9; }
+.d-in_contatto { background:#8B5CF6; }
 .d-in_trattativa { background:var(--orange); }
 .d-cliente { background:#16a34a; }
 .d-perso { background:var(--red); }
@@ -511,8 +518,22 @@ function aziendeFiltered(){
   });
   const {campo,dir}=S.ordine;
   list.sort((a,b)=>{
-    let va=a[campo]||'', vb=b[campo]||'';
-    if(typeof va==='string') va=va.toLowerCase(), vb=vb.toLowerCase();
+    let va, vb;
+    if(campo==='_contatti'){
+      va = S.contatti.filter(c=>c.azienda_id===a.id).length;
+      vb = S.contatti.filter(c=>c.azienda_id===b.id).length;
+    } else if(campo==='_ultima_op'){
+      const opA = S.operazioni.filter(o=>o.azienda_id===a.id)[0];
+      const opB = S.operazioni.filter(o=>o.azienda_id===b.id)[0];
+      va = opA ? new Date(opA.data_operazione).getTime() : 0;
+      vb = opB ? new Date(opB.data_operazione).getTime() : 0;
+    } else if(campo==='fatturato_valore'){
+      va = a.fatturato_valore ?? -1;
+      vb = b.fatturato_valore ?? -1;
+    } else {
+      va=a[campo]||''; vb=b[campo]||'';
+      if(typeof va==='string'){ va=va.toLowerCase(); vb=vb.toLowerCase(); }
+    }
     if(va<vb) return dir==='asc'?-1:1;
     if(va>vb) return dir==='asc'?1:-1;
     return 0;
@@ -521,7 +542,7 @@ function aziendeFiltered(){
 }
 
 function statoBadge(stato){
-  const L={prospect:'Prospect',in_trattativa:'In trattativa',cliente:'Cliente',perso:'Perso',non_interessato:'Non interessato'};
+  const L={prospect:'Prospect',msg_linkedin:'Messaggio LinkedIn',in_contatto:'In contatto',in_trattativa:'In trattativa',cliente:'Cliente',perso:'Perso',non_interessato:'Non interessato'};
   return `<span class="badge-stato s-${stato}"><span class="dot d-${stato}"></span>${L[stato]||stato}</span>`;
 }
 
@@ -561,7 +582,7 @@ function renderTbodyAziende(){
 function renderAziende(pb){
   // Prima visita: costruisce tutta la struttura statica
   if(!$('tbody-az')){
-    const cnt={prospect:0,in_trattativa:0,cliente:0,perso:0,non_interessato:0};
+    const cnt={prospect:0,msg_linkedin:0,in_contatto:0,in_trattativa:0,cliente:0,perso:0,non_interessato:0};
     S.aziende.forEach(a=>{ if(cnt[a.stato_commerciale]!==undefined) cnt[a.stato_commerciale]++; });
 
     // Valori unici per i nuovi filtri
@@ -580,15 +601,18 @@ function renderAziende(pb){
     <div class="stats-row">
       <div class="stat-card"><div style="display:flex;align-items:center;"><span class="stat-accent"></span><div><div class="stat-val">${S.aziende.length}</div><div class="stat-lbl">Totali</div></div></div></div>
       <div class="stat-card"><div class="stat-val" style="color:var(--ew-verde-dark)">${cnt.prospect}</div><div class="stat-lbl">Prospect</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:#0369A1">${cnt.msg_linkedin}</div><div class="stat-lbl">Messaggio LinkedIn</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:#6D28D9">${cnt.in_contatto}</div><div class="stat-lbl">In contatto</div></div>
       <div class="stat-card"><div class="stat-val" style="color:var(--orange)">${cnt.in_trattativa}</div><div class="stat-lbl">In Trattativa</div></div>
       <div class="stat-card"><div class="stat-val" style="color:#16a34a">${cnt.cliente}</div><div class="stat-lbl">Clienti</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:var(--red)">${cnt.perso}</div><div class="stat-lbl">Persi</div></div>
     </div>
     <div class="toolbar" style="flex-wrap:wrap;gap:8px;">
       <input type="search" id="f-search" placeholder="Cerca ragione sociale, città, P.IVA..." value="${esc(S.filtri.search)}" style="width:260px;"/>
       <select id="f-stato" style="min-width:140px;">
         <option value="">Tutti gli stati</option>
         <option value="prospect" ${S.filtri.stato==='prospect'?'selected':''}>Prospect</option>
+        <option value="msg_linkedin" ${S.filtri.stato==='msg_linkedin'?'selected':''}>Messaggio LinkedIn</option>
+        <option value="in_contatto" ${S.filtri.stato==='in_contatto'?'selected':''}>In contatto</option>
         <option value="in_trattativa" ${S.filtri.stato==='in_trattativa'?'selected':''}>In trattativa</option>
         <option value="cliente" ${S.filtri.stato==='cliente'?'selected':''}>Cliente</option>
         <option value="perso" ${S.filtri.stato==='perso'?'selected':''}>Perso</option>
@@ -616,7 +640,14 @@ function renderAziende(pb){
     </div>
     <div class="tbl-wrap"><table>
       <thead><tr>
-        <th>Ragione Sociale</th><th>ATECO</th><th>Comune</th><th>Fatturato</th><th>Stato</th><th>Contatti</th><th>Ultima op.</th><th>Azioni</th>
+        <th class="th-sort" data-sort="ragione_sociale" style="cursor:pointer;user-select:none;">Ragione Sociale <span class="sort-arrow"></span></th>
+        <th>ATECO</th>
+        <th>Comune</th>
+        <th class="th-sort" data-sort="fatturato_valore" style="cursor:pointer;user-select:none;">Fatturato <span class="sort-arrow"></span></th>
+        <th class="th-sort" data-sort="stato_commerciale" style="cursor:pointer;user-select:none;">Stato <span class="sort-arrow"></span></th>
+        <th class="th-sort" data-sort="_contatti" style="cursor:pointer;user-select:none;">Contatti <span class="sort-arrow"></span></th>
+        <th class="th-sort" data-sort="_ultima_op" style="cursor:pointer;user-select:none;">Ultima op. <span class="sort-arrow"></span></th>
+        <th>Azioni</th>
       </tr></thead>
       <tbody id="tbody-az"></tbody>
     </table></div></div>`;
@@ -638,8 +669,37 @@ function renderAziende(pb){
     });
     if($('btn-add-manuale')) $('btn-add-manuale').addEventListener('click',openAddAzienda);
     if($('btn-cerca-openapi')) $('btn-cerca-openapi').addEventListener('click',openCercaOpenapi);
+
+    // Ordinamento colonne
+    document.querySelectorAll('.th-sort').forEach(th=>{
+      th.addEventListener('click',()=>{
+        const campo=th.dataset.sort;
+        if(S.ordine.campo===campo){
+          S.ordine.dir = S.ordine.dir==='asc' ? 'desc' : 'asc';
+        } else {
+          S.ordine.campo = campo;
+          S.ordine.dir = 'asc';
+        }
+        updateSortArrows();
+        renderTbodyAziende();
+      });
+    });
+    updateSortArrows();
   }
   renderTbodyAziende();
+}
+
+function updateSortArrows(){
+  document.querySelectorAll('.th-sort').forEach(th=>{
+    const arrow = th.querySelector('.sort-arrow');
+    if(th.dataset.sort === S.ordine.campo){
+      th.classList.add('sort-active');
+      arrow.textContent = S.ordine.dir==='asc' ? '▲' : '▼';
+    } else {
+      th.classList.remove('sort-active');
+      arrow.textContent = '';
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -675,6 +735,8 @@ function openScheda(azId){
         <button class="btn btn-danger btn-sm" id="btn-del-az">🗑 Elimina</button>
         <select id="sel-stato-az" class="fi" style="font-size:12px;padding:6px 10px;">
           <option value="prospect" ${az.stato_commerciale==='prospect'?'selected':''}>Prospect</option>
+          <option value="msg_linkedin" ${az.stato_commerciale==='msg_linkedin'?'selected':''}>Messaggio LinkedIn</option>
+          <option value="in_contatto" ${az.stato_commerciale==='in_contatto'?'selected':''}>In contatto</option>
           <option value="in_trattativa" ${az.stato_commerciale==='in_trattativa'?'selected':''}>In trattativa</option>
           <option value="cliente" ${az.stato_commerciale==='cliente'?'selected':''}>Cliente</option>
           <option value="perso" ${az.stato_commerciale==='perso'?'selected':''}>Perso</option>
@@ -891,6 +953,8 @@ function formAzienda(az){
     <div class="frow"><div class="fgroup"><label>Telefono</label><input id="az-tel" class="fi" value="${esc(az.telefono||'')}"/></div><div class="fgroup"><label>PEC</label><input id="az-pec" class="fi" value="${esc(az.pec||'')}"/></div></div>
     <div class="frow full"><div class="fgroup"><label>Stato Commerciale</label><select id="az-stato" class="fse">
       <option value="prospect" ${(az.stato_commerciale||'prospect')==='prospect'?'selected':''}>Prospect</option>
+      <option value="msg_linkedin" ${az.stato_commerciale==='msg_linkedin'?'selected':''}>Messaggio LinkedIn</option>
+      <option value="in_contatto" ${az.stato_commerciale==='in_contatto'?'selected':''}>In contatto</option>
       <option value="in_trattativa" ${az.stato_commerciale==='in_trattativa'?'selected':''}>In Trattativa</option>
       <option value="cliente" ${az.stato_commerciale==='cliente'?'selected':''}>Cliente</option>
       <option value="perso" ${az.stato_commerciale==='perso'?'selected':''}>Perso</option>
