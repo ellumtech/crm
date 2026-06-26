@@ -354,8 +354,8 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function fmt(d){ if(!d) return '—'; const dt=typeof d==='string'?new Date(d.length===10?d+'T00:00:00':d):d; return dt.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
 function fmtDT(d){ if(!d) return '—'; return new Date(d).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
-function fmtEuro(v){ if(v===null||v===undefined) return '—'; return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:2}).format(v)+' Mln'; }
-function fmtEuroFull(v){ if(v===null||v===undefined) return '—'; return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v*1_000_000); }
+function fmtEuro(v){ if(v===null||v===undefined) return '—'; return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:2}).format(v/1_000_000)+' Mln'; }
+function fmtEuroFull(v){ if(v===null||v===undefined) return '—'; return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v); }
 
 let _tid;
 function toast(msg, type='ok'){ const el=$('toast'); clearTimeout(_tid); el.textContent=msg; el.className=`show t${type}`; _tid=setTimeout(()=>el.className='', msg.length>60?6000:3500); }
@@ -946,7 +946,7 @@ function formAzienda(az){
   return `
     <div class="frow"><div class="fgroup"><label>Ragione Sociale *</label><input id="az-rs" class="fi" value="${esc(az.ragione_sociale||'')}"/></div><div class="fgroup"><label>Partita IVA</label><input id="az-piva" class="fi" style="font-family:'DM Mono',monospace;" value="${esc(az.partita_iva||'')}"/></div></div>
     <div class="frow three"><div class="fgroup"><label>Codice ATECO</label><input id="az-ateco" class="fi" style="font-family:'DM Mono',monospace;" value="${esc(az.codice_ateco||'')}"/></div><div class="fgroup"><label>Desc. ATECO</label><input id="az-dateco" class="fi" value="${esc(az.descrizione_ateco||'')}"/></div><div class="fgroup"><label>Forma Giuridica</label><input id="az-fgiur" class="fi" value="${esc(az.forma_giuridica||'')}"/></div></div>
-    <div class="frow"><div class="fgroup"><label>Fatturato (Mln €)</label><input type="number" id="az-fatt" class="fi" step="0.01" value="${az.fatturato_valore||''}"/></div><div class="fgroup"><label>Anno Bilancio</label><input type="number" id="az-abilan" class="fi" value="${az.anno_bilancio||''}"/></div></div>
+    <div class="frow"><div class="fgroup"><label>Fatturato (€)</label><input type="number" id="az-fatt" class="fi" value="${az.fatturato_valore||''}"/></div><div class="fgroup"><label>Anno Bilancio</label><input type="number" id="az-abilan" class="fi" value="${az.anno_bilancio||''}"/></div></div>
     <div class="frow three"><div class="fgroup"><label>Comune</label><input id="az-comune" class="fi" value="${esc(az.comune||'')}"/></div><div class="fgroup"><label>Provincia</label><input id="az-prov" class="fi" maxlength="3" style="text-transform:uppercase;" value="${esc(az.provincia||'')}"/></div><div class="fgroup"><label>CAP</label><input id="az-cap" class="fi" maxlength="5" style="font-family:'DM Mono',monospace;" value="${esc(az.cap||'')}"/></div></div>
     <div class="frow full"><div class="fgroup"><label>Indirizzo</label><input id="az-ind" class="fi" value="${esc(az.indirizzo||'')}"/></div></div>
     <div class="frow"><div class="fgroup"><label>Sito Web</label><input id="az-web" class="fi" placeholder="https://..." value="${esc(az.sito_web||'')}"/></div><div class="fgroup"><label>LinkedIn</label><input id="az-li" class="fi" placeholder="https://linkedin.com/company/..." value="${esc(az.linkedin_url||'')}"/></div></div>
