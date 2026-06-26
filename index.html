@@ -510,9 +510,16 @@ function aziendeFiltered(){
     }
     if(S.filtri.search){
       const q=S.filtri.search.toLowerCase();
-      return (a.ragione_sociale||'').toLowerCase().includes(q)||
+      const matchAzienda = (a.ragione_sociale||'').toLowerCase().includes(q)||
              (a.comune||'').toLowerCase().includes(q)||
              (a.partita_iva||'').includes(q);
+      if(matchAzienda) return true;
+      // Cerca anche nei contatti collegati (nome + cognome)
+      const matchContatto = S.contatti.some(c=>
+        c.azienda_id===a.id &&
+        `${c.nome||''} ${c.cognome||''}`.toLowerCase().includes(q)
+      );
+      return matchContatto;
     }
     return true;
   });
@@ -607,7 +614,7 @@ function renderAziende(pb){
       <div class="stat-card"><div class="stat-val" style="color:#16a34a">${cnt.cliente}</div><div class="stat-lbl">Clienti</div></div>
     </div>
     <div class="toolbar" style="flex-wrap:wrap;gap:8px;">
-      <input type="search" id="f-search" placeholder="Cerca ragione sociale, città, P.IVA..." value="${esc(S.filtri.search)}" style="width:260px;"/>
+      <input type="search" id="f-search" placeholder="Cerca ragione sociale, città, P.IVA, contatto..." value="${esc(S.filtri.search)}" style="width:280px;"/>
       <select id="f-stato" style="min-width:140px;">
         <option value="">Tutti gli stati</option>
         <option value="prospect" ${S.filtri.stato==='prospect'?'selected':''}>Prospect</option>
